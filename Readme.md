@@ -2,7 +2,9 @@ EQ-Zip EverQuest Archive Manager
 -----------
 
 Current Version: 1.0
+
 Last Updated: 7/25/2015
+
 Github Link: https://github.com/Shendare/EQZip
 
 #Features:
@@ -31,15 +33,15 @@ Github Link: https://github.com/Shendare/EQZip
 
 #Screenshots:
 
->https://github.com/Shendare/EQZip/tree/master/screenshots/screenshot1.png
+>https://raw.githubusercontent.com/Shendare/EQZip/master/screenshots/screenshot1.png
 
->https://github.com/Shendare/EQZip/tree/master/screenshots/screenshot2.png
+>https://raw.githubusercontent.com/Shendare/EQZip/master/screenshots/screenshot2.png
 
->https://github.com/Shendare/EQZip/tree/master/screenshots/screenshot3.png
+>https://raw.githubusercontent.com/Shendare/EQZip/master/screenshots/screenshot3.png
 
->https://github.com/Shendare/EQZip/tree/master/screenshots/screenshot4.png
+>https://raw.githubusercontent.com/Shendare/EQZip/master/screenshots/screenshot4.png
 
->https://github.com/Shendare/EQZip/tree/master/screenshots/screenshot5.png
+>https://raw.githubusercontent.com/Shendare/EQZip/master/screenshots/screenshot5.png
 
 #License:
 
