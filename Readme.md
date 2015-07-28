@@ -43,6 +43,10 @@ Github Link: https://github.com/Shendare/EQZip
 
 >https://raw.githubusercontent.com/Shendare/EQZip/master/screenshots/screenshot5.png
 
+#Disclaimer:
+
+>EQ-Zip is not affiliated with, endorsed by, approved by, or in any way associated with Daybreak Games, the EverQuest franchise, or any of the other compression/archive based applications out there with the word "Zip" in them, who reserve all copyrights and trademarks to their properties.
+
 #License:
 
 >Portions of this software's code not covered by another author's or entity's copyright are released under the Creative Commons Zero (CC0) public domain license.
