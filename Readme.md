@@ -87,6 +87,8 @@ Github Link: https://github.com/Shendare/EQZip
 
 * A feature will be added to vertically flip a texture, as some in-game geometry expects a texture to be bottom-up, and it can be hard to tell until you see it in-game.
 
+* I plan to look into an algorithm for enhancing the sharpness of DDS mipmaps, so that they don't get quite so blurry as they get smaller.
+
 * It's a little strange that there is a separate EQArchive class and PFSFormat class to handle EQ package files. When I began the project, I was under the mistaken impression that S3D and EQG files used different file formats for storing their contents, so I had a PFSArchives.cs and an EQGArchives.cs both tied to EQArchive.cs. When I learned that both used the same format, I removed EQGArchives.cs, but because the remaining two classes are working fine together, I have not merged them at this point.
 
 #Release Notes:
