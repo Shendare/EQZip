@@ -1,9 +1,9 @@
 EQ-Zip EverQuest Archive Manager
 -----------
 
-Current Version: 1.0
+Current Version: 1.1
 
-Last Updated: 7/25/2015
+Last Updated: 7/28/2015
 
 Github Link: https://github.com/Shendare/EQZip
 
@@ -11,7 +11,7 @@ Github Link: https://github.com/Shendare/EQZip
 
 * Creates, Loads and Saves .S3D, .EQG, .PFS, and .PAK EverQuest package files
 
-* Thumbnails of all supported texture types (missing DXT2/DXT3/DXT4 support right now)
+* Thumbnails of all supported texture types (RGB24, RGB32, DXT1/2/3/4/5, V8U8)
 
 * Automatically converts textures to .dds uncompressed when importing (toggle)
 
@@ -81,20 +81,25 @@ Github Link: https://github.com/Shendare/EQZip
 
 #Known Issues and Planned Updates:
 
-* DXT2, DXT3, and DXT4 compressed DDS textures are not yet supported. At least DXT3 support is planned.
+* DDS conversion does not support compression. This is intended. DXT compression is very lossy ( see http://www.fsdeveloper.com/wiki/index.php?title=DXT_compression_explained ), and graphics cards have plenty of video memory for uncompressed textures these days.
 
-* DXT5 decompression is very slow. It will be rewritten with direct-memory access instead of SetPixel().
+* Support for reading and writing 16-bit uncompressed DDS textures is planned, as it would cut image sizes in half with much lower loss of definition than DXT compression.
 
-* DDS importing does not support compression. This is intended. DXT compression is very lossy ( see http://www.fsdeveloper.com/wiki/index.php?title=DXT_compression_explained ), and graphics cards have plenty of video memory for tons of uncompressed textures these days.
+* A feature will be added to vertically flip a texture, as some in-game geometry expects a texture to be bottom-up, and it can be hard to tell until you see it in-game.
 
-* A feature will be added to vertically flip a texture, as some in-game geometry expects a texture to be bottom-up.
-
-* It's a little strange that there is a separate EQArchive class and PFSFormat class to handle EQ package files. When I began the project, I was under the mistaken impression that S3D and EQG files used different file formats for storing their contents, so I had a PFSFormat.cs and an EQGFormat.cs both tied to EQArchive.cs. When I learned that both used the same format, I removed EQGFormat.cs, but because the remaining two classes are working fine together, I have not merged them at this point.
+* It's a little strange that there is a separate EQArchive class and PFSFormat class to handle EQ package files. When I began the project, I was under the mistaken impression that S3D and EQG files used different file formats for storing their contents, so I had a PFSArchives.cs and an EQGArchives.cs both tied to EQArchive.cs. When I learned that both used the same format, I removed EQGArchives.cs, but because the remaining two classes are working fine together, I have not merged them at this point.
 
 #Release Notes:
+
+7/28/2015 - Version 1.1
+
+* DXT1 Decompression - Improved Slightly
+* DXT2 Decompression - Enabled
+* DXT3 Decompression - Added
+* DXT4 Decompression - Enabled
+* DXT5 Decompression - Improved Significantly
+* V8U8 Decompression - Improved Significantly
 
 7/25/2015 - Version 1.0
 
 * Initial Release
-
-EOF

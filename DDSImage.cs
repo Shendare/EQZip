@@ -1,15 +1,11 @@
 ﻿/*
  * 
- *  DDSImage.cs - DDS Texture File Reading (RGB, DXT1, DXT5, V8U8 only) and Writing (RGB Only)
+ *  DDSImage.cs - DDS Texture File Reading (RGB24/32, DXT1/2/3/4/5, V8U8) and Writing (RGB24/32 Only)
  *  
  *  By Shendare (Jon D. Jackson)
  * 
  *  Rebuilt from Microsoft DDS documentation with the help of the DDSImage.cs reading class from
  *  Lorenzo Consolaro, under the MIT License.  https://code.google.com/p/kprojects/ 
- * 
- *  The code still in use below from Lorenzo's class consists of the DXT5 and V8U8 decompression functions.
- *  I have not yet gotten around to rewriting them with direct memory access for performance. Most of the
- *  textures I work with in my project are DXT1.    - Shendare
  * 
  *  Portions of this code not covered by another author's or entity's copyright are released under
  *  the Creative Commons Zero (CC0) public domain license.
@@ -163,23 +159,25 @@ namespace DDS
                         case FOURCC_DXT1:
                             _dds.Format = CompressionMode.DXT1;
                             break;
+                        case FOURCC_DXT2:
+                            _dds.Format = CompressionMode.DXT2;
+                            break;
+                        case FOURCC_DXT3:
+                            _dds.Format = CompressionMode.DXT3;
+                            break;
+                        case FOURCC_DXT4:
+                            _dds.Format = CompressionMode.DXT4;
+                            break;
                         case FOURCC_DXT5:
                             _dds.Format = CompressionMode.DXT5;
                             break;
                         default:
                             switch (_dds.PixelFormat.dwFourCC)
                             {
-                                case FOURCC_DXT2:
-                                    _dds.Format = CompressionMode.DXT2;
-                                    break;
-                                case FOURCC_DXT3:
-                                    _dds.Format = CompressionMode.DXT3;
-                                    break;
-                                case FOURCC_DXT4:
-                                    _dds.Format = CompressionMode.DXT4;
+                                default:
                                     break;
                             }
-                            throw new System.IO.FileFormatException("Only DXT1 and DXT5 compression formats are supported at this time.");
+                            throw new System.IO.FileFormatException("Unsupported compression format");
                     }
                 }
 
@@ -239,11 +237,21 @@ namespace DDS
                 {
                     // Compressed
 
-                    _imageSize = 16 * ((_w + 3) >> 2) * (((_h + 3) >> 2));
+                    _imageSize = ((_w + 3) >> 2) * (((_h + 3) >> 2));
 
-                    if (_dds.PixelFormat.dwFourCC == FOURCC_DXT1)
+                    switch (_dds.PixelFormat.dwFourCC)
                     {
-                        _imageSize >>= 1;
+                        case FOURCC_DXT1:
+                            _imageSize <<= 3; // 64 bits color per block
+                            break;
+                        case FOURCC_DXT2:
+                        case FOURCC_DXT3:
+                            _imageSize <<= 4; // 64 bits alpha + 64 bits color per block
+                            break;
+                        case FOURCC_DXT4:
+                        case FOURCC_DXT5:
+                            _imageSize <<= 4; // 64 bits alpha + 64 bits color per block
+                            break;
                     }
                 }
 
@@ -310,283 +318,381 @@ namespace DDS
 
                 switch (CompressionMode)
                 {
-                    case FOURCC_DXT1:
-
-                        // https://msdn.microsoft.com/en-us/library/bb147243%28v=vs.85%29.aspx
-
-                        // Gain direct access to the surface's bits
-                        BitmapData _bits = _img.LockBits(new Rectangle(0, 0, _img.Width, _img.Height), ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                        IntPtr _bitPtr = _bits.Scan0;
-                    
-                        // Convert byte[] data into 16-bit ushorts per Microsoft design/documentation
-                        ushort[] _bpp16 = new ushort[Data.Length >> 1];
-                        Buffer.BlockCopy(Data, 0, _bpp16, 0, Data.Length);
-
-                        // Checking for negative stride per documentation just to be safe, but I don't think bottom-up format is supported with DXT1.
-                        // Converting from bytes to ushorts for _bpp16
-                        Int32 _stride = (((_bits.Stride < 0) ? -_bits.Stride : _bits.Stride) >> 2);
-                    
-                        // Our actual pixel data as it is decompressed
-                        Int32[] _pixels = new Int32[_stride * _bits.Height];
-
-                        // Decompress each block
-                        int _pos = 0;
-                        for (int _y = 0; _y < H; _y += 4)
-                        {
-                            for (int _x = 0; _x < W; _x += 4)
-                            {
-                                DXT1(_bpp16, _pos, _pixels, _x, _y, _stride);
-                                _pos += 4; // 4 16-bit words make up each DXT1 compression block
-                            }
-                        }
-
-                        // Copy our decompressed bits back into the surface
-                        System.Runtime.InteropServices.Marshal.Copy(_pixels, 0, _bitPtr, _stride * _bits.Height);
-
-                        // We're done!
-                        _img.UnlockBits(_bits);
-
-                        return _img;
-
-                    case FOURCC_DXT5:
-                    
-                        // Needs to be rewritten to access bits directly as with DXT1
-                        using (MemoryStream _stream = new MemoryStream(Data))
-                        {
-                            using (BinaryReader _reader = new BinaryReader(_stream))
-                            {
-                                for (int _y = 0; _y < H; _y += 4)
-                                {
-                                    for (int _x = 0; _x < W; _x += 4)
-                                    {
-                                        DXT5(_x, _y, _reader.ReadBytes(16), _img);
-                                    }
-                                }
-                            }
-                        }
-                        return _img;
-
-                    case FOURCC_V8U8:
-                    
-                        // Needs to be rewritten to access bits directly as with DXT1
-                        return V8U8(Data, W, H);
-
                     case 24:
                     case 32:
                         return Linear(Data, W, H, CompressionMode);
-                    
-                    default:
-                        throw new FileFormatException(string.Format("DDS compression Mode '{0}{0}{0}{0}' not supported.",
-                            (char)(CompressionMode & 0xFF),
-                            (char)((CompressionMode >> 8) & 0xFF),
-                            (char)((CompressionMode >> 16) & 0xFF),
-                            (char)((CompressionMode >> 24) & 0xFF)));
                 }
+
+                // https://msdn.microsoft.com/en-us/library/bb147243%28v=vs.85%29.aspx
+
+                // Gain direct access to the surface's bits
+                BitmapData _bits = _img.LockBits(new Rectangle(0, 0, _img.Width, _img.Height), ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                IntPtr _bitPtr = _bits.Scan0;
+
+                // Convert byte[] data into 16-bit ushorts per Microsoft design/documentation
+                ushort[] _bpp16 = new ushort[Data.Length >> 1];
+                Buffer.BlockCopy(Data, 0, _bpp16, 0, Data.Length);
+
+                // Checking for negative stride per documentation just to be safe, but I don't think bottom-up format is supported with DXT1.
+                // Converting from bytes to ushorts for _bpp16
+                Int32 _stride = (((_bits.Stride < 0) ? -_bits.Stride : _bits.Stride) >> 2);
+
+                // Our actual pixel data as it is decompressed
+                Int32[] _pixels = new Int32[_stride * _bits.Height];
+
+                // Decompress the blocks
+                switch (CompressionMode)
+                {
+                    case FOURCC_DXT1:
+                        DXT1(_bpp16, _pixels, W, H, _stride);
+                        break;
+
+                    case FOURCC_DXT2:
+                    case FOURCC_DXT3:
+                        DXT3(_bpp16, _pixels, W, H, _stride);
+                        break;
+
+                    case FOURCC_DXT4:
+                    case FOURCC_DXT5:
+                        DXT5(_bpp16, _pixels, W, H, _stride);
+                        break;
+
+                    case FOURCC_V8U8:
+                        V8U8(_bpp16, _pixels, W, H, _stride);
+                        break;
+
+                    default:
+                        _pixels = null;
+                        break;
+                }
+
+                // Copy our decompressed bits back into the surface
+                if (_pixels != null)
+                {
+                    System.Runtime.InteropServices.Marshal.Copy(_pixels, 0, _bitPtr, _stride * _bits.Height);
+                }
+
+                // We're done!
+                _img.UnlockBits(_bits);
+
+                if (_pixels == null)
+                {
+                    throw new FileFormatException(string.Format("DDS compression Mode '{0}{0}{0}{0}' not supported.",
+                        (char)(CompressionMode & 0xFF),
+                        (char)((CompressionMode >> 8) & 0xFF),
+                        (char)((CompressionMode >> 16) & 0xFF),
+                        (char)((CompressionMode >> 24) & 0xFF)));
+                }
+
+                return _img;
             }
 
-            private static void DXT1(ushort[] Data, int Pos, Int32[] Pixels, int X, int Y, int Stride)
+            private static void DXT1(ushort[] Data, Int32[] Pixels, int W, int H, int Stride)
             {
                 UInt32[] _color = new UInt32[4];
+                int _pos = 0;
+                int _stride2 = Stride - 4;
 
-                ushort _c1 = Data[Pos++];
-                ushort _c2 = Data[Pos++];
-
-                bool _isAlpha = (_c1 < _c2);
-
-                uint _r1 = (byte)((_c1 >> 11) & 0x1F);
-                uint _g1 = (byte)((_c1 & 0x07E0) >> 5);
-                uint _b1 = (byte)(_c1 & 0x001F);
-
-                uint _r2 = (byte)((_c2 >> 11) & 0x1F);
-                uint _g2 = (byte)((_c2 & 0x07E0) >> 5);
-                uint _b2 = (byte)(_c2 & 0x001F);
-
-                _r1 = (_r1 << 3) + (_r1 >> 2);
-                _g1 = (_g1 << 2) + (_g1 >> 4);
-                _b1 = (_b1 << 3) + (_b1 >> 2);
-
-                _r2 = (_r2 << 3) + (_r2 >> 2);
-                _g2 = (_g2 << 2) + (_g2 >> 4);
-                _b2 = (_b2 << 3) + (_b2 >> 2);
-
-                uint _a = unchecked((uint)(0xFF << 24));
-
-                if (_isAlpha)
+                for (int _y = 0; _y < H; _y += 4)
                 {
-                    _color[0] = _a | _r1 << 16 | _g1 << 8 | _b1;
-                    _color[1] = _a | _r2 << 16 | _g2 << 8 | _b2;
-                    _color[2] = _a | (((_r1 + _r2) >> 1) << 16) | (((_g1 + _g2) >> 1) << 8) | ((_b1 + _b2) >> 1);
-                    _color[3] = 0x00000000; // Transparent pixel
-                }
-                else
-                {
-                    _color[0] = _a | _r1 << 16 | _g1 << 8 | _b1;
-                    _color[1] = _a | _r2 << 16 | _g2 << 8 | _b2;
-                    _color[2] = _a | ((((_r2 * 3) + (_r1 * 6)) / 9) << 16) | ((((_g2 * 3) + (_g1 * 6)) / 9) << 8) | (((_b2 * 3) + (_b1 * 6)) / 9);
-                    _color[3] = _a | ((((_r1 * 3) + (_r2 * 6)) / 9) << 16) | ((((_g1 * 3) + (_g2 * 6)) / 9) << 8) | (((_b1 * 3) + (_b2 * 6)) / 9);
-                }
-
-                int _pixel = Y * Stride + X;
-
-                Stride -= 4;
-
-                ushort _code = Data[Pos++];
-
-                Pixels[_pixel++] = unchecked((int)_color[_code & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 2 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 4 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 6 & 0x03]);
-                _pixel += Stride;
-
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 8 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 10 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 12 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 14 & 0x03]);
-                _pixel += Stride;
-
-                _code = Data[Pos++];
-
-                Pixels[_pixel++] = unchecked((int)_color[_code & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 2 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 4 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 6 & 0x03]);
-                _pixel += Stride;
-
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 8 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 10 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 12 & 0x03]);
-                Pixels[_pixel++] = unchecked((int)_color[_code >> 14 & 0x03]);
-            }
-
-            // Need to rewrite to read pixel bits directly, as already done for DXT1.
-            private static void DXT5(int X, int Y, byte[] Block, Bitmap Image)
-            {
-                byte alpha0 = Block[0];
-                byte alpha1 = Block[1];
-
-                int bitOffset = 2;
-                uint alphaCode1 = (uint)(Block[bitOffset + 2] | (Block[bitOffset + 3] << 8) | (Block[bitOffset + 4] << 16) | (Block[bitOffset + 5] << 24));
-                ushort alphaCode2 = (ushort)(Block[bitOffset + 0] | (Block[bitOffset + 1] << 8));
-
-                ushort color0 = (ushort)(Block[8] | Block[9] << 8);
-                ushort color1 = (ushort)(Block[10] | Block[11] << 8);
-
-                int temp;
-
-                temp = (color0 >> 11) * 255 + 16;
-                byte r0 = (byte)((temp / 32 + temp) / 32);
-                temp = ((color0 & 0x07E0) >> 5) * 255 + 32;
-                byte g0 = (byte)((temp / 64 + temp) / 64);
-                temp = (color0 & 0x001F) * 255 + 16;
-                byte b0 = (byte)((temp / 32 + temp) / 32);
-
-                temp = (color1 >> 11) * 255 + 16;
-                byte r1 = (byte)((temp / 32 + temp) / 32);
-                temp = ((color1 & 0x07E0) >> 5) * 255 + 32;
-                byte g1 = (byte)((temp / 64 + temp) / 64);
-                temp = (color1 & 0x001F) * 255 + 16;
-                byte b1 = (byte)((temp / 32 + temp) / 32);
-
-                uint code = (uint)(Block[12] | Block[13] << 8 | Block[14] << 16 | Block[15] << 24);
-
-                for (int j = 0; j < 4; j++)
-                {
-                    for (int i = 0; i < 4; i++)
+                    for (int _x = 0; _x < W; _x += 4)
                     {
-                        int alphaCodeIndex = 3 * (4 * j + i);
-                        int alphaCode;
+                        ushort _c1 = Data[_pos++];
+                        ushort _c2 = Data[_pos++];
 
-                        if (alphaCodeIndex <= 12)
+                        bool _isAlpha = (_c1 < _c2);
+
+                        uint _r1 = (byte)((_c1 >> 11) & 0x1F);
+                        uint _g1 = (byte)((_c1 & 0x07E0) >> 5);
+                        uint _b1 = (byte)(_c1 & 0x001F);
+
+                        uint _r2 = (byte)((_c2 >> 11) & 0x1F);
+                        uint _g2 = (byte)((_c2 & 0x07E0) >> 5);
+                        uint _b2 = (byte)(_c2 & 0x001F);
+
+                        _r1 = (_r1 << 3) + (_r1 >> 2);
+                        _g1 = (_g1 << 2) + (_g1 >> 4);
+                        _b1 = (_b1 << 3) + (_b1 >> 2);
+
+                        _r2 = (_r2 << 3) + (_r2 >> 2);
+                        _g2 = (_g2 << 2) + (_g2 >> 4);
+                        _b2 = (_b2 << 3) + (_b2 >> 2);
+
+                        uint _a = unchecked((uint)(0xFF << 24));
+
+                        if (_isAlpha)
                         {
-                            alphaCode = (alphaCode2 >> alphaCodeIndex) & 0x07;
-                        }
-                        else if (alphaCodeIndex == 15)
-                        {
-                            alphaCode = (int)((uint)(alphaCode2 >> 15) | ((alphaCode1 << 1) & 0x06));
+                            _color[0] = _a | _r1 << 16 | _g1 << 8 | _b1;
+                            _color[1] = _a | _r2 << 16 | _g2 << 8 | _b2;
+                            _color[2] = _a | (((_r1 + _r2) >> 1) << 16) | (((_g1 + _g2) >> 1) << 8) | ((_b1 + _b2) >> 1);
+                            _color[3] = 0x00000000; // Transparent pixel
                         }
                         else
                         {
-                            alphaCode = (int)((alphaCode1 >> (alphaCodeIndex - 16)) & 0x07);
+                            _color[0] = _a | _r1 << 16 | _g1 << 8 | _b1;
+                            _color[1] = _a | _r2 << 16 | _g2 << 8 | _b2;
+                            _color[2] = _a | ((((_r2 * 3) + (_r1 * 6)) / 9) << 16) | ((((_g2 * 3) + (_g1 * 6)) / 9) << 8) | (((_b2 * 3) + (_b1 * 6)) / 9);
+                            _color[3] = _a | ((((_r1 * 3) + (_r2 * 6)) / 9) << 16) | ((((_g1 * 3) + (_g2 * 6)) / 9) << 8) | (((_b1 * 3) + (_b2 * 6)) / 9);
                         }
 
-                        byte finalAlpha;
-                        if (alphaCode == 0)
-                        {
-                            finalAlpha = alpha0;
-                        }
-                        else if (alphaCode == 1)
-                        {
-                            finalAlpha = alpha1;
-                        }
-                        else
-                        {
-                            if (alpha0 > alpha1)
-                            {
-                                finalAlpha = (byte)(((8 - alphaCode) * alpha0 + (alphaCode - 1) * alpha1) / 7);
-                            }
-                            else
-                            {
-                                if (alphaCode == 6)
-                                    finalAlpha = 0;
-                                else if (alphaCode == 7)
-                                    finalAlpha = 255;
-                                else
-                                    finalAlpha = (byte)(((6 - alphaCode) * alpha0 + (alphaCode - 1) * alpha1) / 5);
-                            }
-                        }
+                        int _pixel = _y * Stride + _x;
 
-                        byte colorCode = (byte)((code >> 2 * (4 * j + i)) & 0x03);
+                        ushort _code = Data[_pos++];
 
-                        Color finalColor = new Color();
-                        switch (colorCode)
-                        {
-                            case 0:
-                                finalColor = Color.FromArgb(finalAlpha, r0, g0, b0);
-                                break;
-                            case 1:
-                                finalColor = Color.FromArgb(finalAlpha, r1, g1, b1);
-                                break;
-                            case 2:
-                                finalColor = Color.FromArgb(finalAlpha, (2 * r0 + r1) / 3, (2 * g0 + g1) / 3, (2 * b0 + b1) / 3);
-                                break;
-                            case 3:
-                                finalColor = Color.FromArgb(finalAlpha, (r0 + 2 * r1) / 3, (g0 + 2 * g1) / 3, (b0 + 2 * b1) / 3);
-                                break;
-                        }
+                        Pixels[_pixel++] = unchecked((int)_color[_code & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 2 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 4 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 6 & 0x03]);
+                        _pixel += _stride2;
 
-                        //Version .4 <Denys.Bul*>
-                        int px = X + i;
-                        int py = Y + j;
-                        GraphicsUnit u = GraphicsUnit.Pixel;
-                        if (Image.GetBounds(ref u).Contains(px, py))
-                            Image.SetPixel(px, py, finalColor);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 8 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 10 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 12 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 14 & 0x03]);
+                        _pixel += _stride2;
+
+                        _code = Data[_pos++];
+
+                        Pixels[_pixel++] = unchecked((int)_color[_code & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 2 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 4 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 6 & 0x03]);
+                        _pixel += _stride2;
+
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 8 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 10 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 12 & 0x03]);
+                        Pixels[_pixel++] = unchecked((int)_color[_code >> 14 & 0x03]);
                     }
                 }
             }
 
-            private static Bitmap V8U8(byte[] data, int w, int h)
+            private static void DXT3(ushort[] Data, Int32[] Pixels, int W, int H, int Stride)
             {
-                // Rewrite to read pixel bits directly, as already done for DXT1.
+                ushort[] _alpha = new ushort[4];
+                int _pos = 0;
+                int _stride2 = Stride - 4;
 
-                Bitmap res = new Bitmap(w, h);
-                using (MemoryStream ms = new MemoryStream(data))
+                for (int _y = 0; _y < H; _y += 4)
                 {
-                    using (BinaryReader r = new BinaryReader(ms))
+                    for (int _x = 0; _x < W; _x += 4)
                     {
-                        for (int y = 0; y < h; y++)
+                        for (int _i = 0; _i < 4; _i++)
                         {
-                            for (int x = 0; x < w; x++)
-                            {
-                                sbyte red = r.ReadSByte();
-                                sbyte green = r.ReadSByte();
-                                byte blue = 0xFF;
-
-                                res.SetPixel(x, y, Color.FromArgb(0x7F - red, 0x7F - green, blue));
-                            }
+                            _alpha[_i] = Data[_pos++];
                         }
+
+                        int _pixel = _y * Stride + _x;
+
+                        for (int _i = 0; _i < 4; _i++)
+                        {
+                            Pixels[_pixel++] = (((_alpha[_i] >>  0) & 0x000F) * 255 / 15) << 24;
+                            Pixels[_pixel++] = (((_alpha[_i] >>  4) & 0x000F) * 255 / 15) << 24;
+                            Pixels[_pixel++] = (((_alpha[_i] >>  8) & 0x000F) * 255 / 15) << 24;
+                            Pixels[_pixel++] = (((_alpha[_i] >> 12) & 0x000F) * 255 / 15) << 24;
+                            
+                            _pixel += _stride2;
+                        }
+
+                        UInt32[] _color = new UInt32[4];
+
+                        ushort _c1 = Data[_pos++];
+                        ushort _c2 = Data[_pos++];
+
+                        uint _r1 = (byte)((_c1 >> 11) & 0x1F);
+                        uint _g1 = (byte)((_c1 & 0x07E0) >> 5);
+                        uint _b1 = (byte)(_c1 & 0x001F);
+
+                        uint _r2 = (byte)((_c2 >> 11) & 0x1F);
+                        uint _g2 = (byte)((_c2 & 0x07E0) >> 5);
+                        uint _b2 = (byte)(_c2 & 0x001F);
+
+                        _r1 = (_r1 << 3) + (_r1 >> 2);
+                        _g1 = (_g1 << 2) + (_g1 >> 4);
+                        _b1 = (_b1 << 3) + (_b1 >> 2);
+
+                        _r2 = (_r2 << 3) + (_r2 >> 2);
+                        _g2 = (_g2 << 2) + (_g2 >> 4);
+                        _b2 = (_b2 << 3) + (_b2 >> 2);
+
+                        _color[0] = _r1 << 16 | _g1 << 8 | _b1;
+                        _color[1] = _r2 << 16 | _g2 << 8 | _b2;
+                        _color[2] = ((((_r2 * 3) + (_r1 * 6)) / 9) << 16) | ((((_g2 * 3) + (_g1 * 6)) / 9) << 8) | (((_b2 * 3) + (_b1 * 6)) / 9);
+                        _color[3] = ((((_r1 * 3) + (_r2 * 6)) / 9) << 16) | ((((_g1 * 3) + (_g2 * 6)) / 9) << 8) | (((_b1 * 3) + (_b2 * 6)) / 9);
+
+                        _pixel = _y * Stride + _x;
+
+                        ushort _code = Data[_pos++];
+
+                        Pixels[_pixel++] |= unchecked((int)_color[_code & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 2 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 4 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 6 & 0x03]);
+                        _pixel += _stride2;
+
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 8 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 10 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 12 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 14 & 0x03]);
+                        _pixel += _stride2;
+
+                        _code = Data[_pos++];
+
+                        Pixels[_pixel++] |= unchecked((int)_color[_code & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 2 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 4 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 6 & 0x03]);
+                        _pixel += _stride2;
+
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 8 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 10 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 12 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 14 & 0x03]);
                     }
                 }
-                return res;
+            }
+
+            private static void DXT5(ushort[] Data, Int32[] Pixels, int W, int H, int Stride)
+            {
+                UInt32[] _color = new UInt32[4];
+                ushort[] _alpha = new ushort[8];
+                ushort[] _alphaBits = new ushort[3];
+                ushort _alphaCode;
+                int _pos = 0;
+                int _stride2 = Stride - 4;
+                ushort _code;
+
+                for (int _y = 0; _y < H; _y += 4)
+                {
+                    for (int _x = 0; _x < W; _x += 4)
+                    {
+                        _alpha[0] = (ushort)(Data[_pos] & 0xFF);
+                        _alpha[1] = (ushort)(Data[_pos++] >> 8);
+
+                        if (_alpha[0] > _alpha[1])
+                        {
+                            // 8 alpha block
+                            _alpha[2] = (ushort)((6 * _alpha[0] + 1 * _alpha[1] + 3) / 7);
+                            _alpha[3] = (ushort)((5 * _alpha[0] + 2 * _alpha[1] + 3) / 7);
+                            _alpha[4] = (ushort)((4 * _alpha[0] + 3 * _alpha[1] + 3) / 7);
+                            _alpha[5] = (ushort)((3 * _alpha[0] + 4 * _alpha[1] + 3) / 7);
+                            _alpha[6] = (ushort)((2 * _alpha[0] + 5 * _alpha[1] + 3) / 7);
+                            _alpha[7] = (ushort)((1 * _alpha[0] + 6 * _alpha[1] + 3) / 7);
+                        }
+                        else
+                        {
+                            // 6 alpha block
+                            _alpha[2] = (ushort)((4 * _alpha[0] + 1 * _alpha[1] + 2) / 5);
+                            _alpha[3] = (ushort)((3 * _alpha[0] + 2 * _alpha[1] + 2) / 5);
+                            _alpha[4] = (ushort)((2 * _alpha[0] + 3 * _alpha[1] + 2) / 5);
+                            _alpha[5] = (ushort)((1 * _alpha[0] + 4 * _alpha[1] + 2) / 5);
+                            _alpha[6] = 0;
+                            _alpha[7] = 0xFF;
+                        }
+
+                        for (int _i = 0; _i < 3; _i++)
+                        {
+                            _alphaBits[_i] = Data[_pos++];
+                        }
+
+                        int _pixel = _y * Stride + _x;
+
+                        _alphaCode = _alphaBits[0];
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24;
+                        _pixel += _stride2;
+
+                        _alphaCode = (ushort)((_alphaBits[0] >> 12) | (_alphaBits[1] << 4));
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24;
+                        _pixel += _stride2;
+
+                        _alphaCode = (ushort)((_alphaBits[1] >> 8) | (_alphaBits[2] << 8));
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24;
+                        _pixel += _stride2;
+
+                        _alphaCode = (ushort)(_alphaBits[2] >> 4);
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24; _alphaCode >>= 3;
+                        Pixels[_pixel++] = _alpha[_alphaCode & 0x0007] << 24;
+
+                        ushort _c1 = Data[_pos++];
+                        ushort _c2 = Data[_pos++];
+
+                        uint _r1 = (byte)((_c1 >> 11) & 0x1F);
+                        uint _g1 = (byte)((_c1 & 0x07E0) >> 5);
+                        uint _b1 = (byte)(_c1 & 0x001F);
+
+                        uint _r2 = (byte)((_c2 >> 11) & 0x1F);
+                        uint _g2 = (byte)((_c2 & 0x07E0) >> 5);
+                        uint _b2 = (byte)(_c2 & 0x001F);
+
+                        _r1 = (_r1 << 3) + (_r1 >> 2);
+                        _g1 = (_g1 << 2) + (_g1 >> 4);
+                        _b1 = (_b1 << 3) + (_b1 >> 2);
+
+                        _r2 = (_r2 << 3) + (_r2 >> 2);
+                        _g2 = (_g2 << 2) + (_g2 >> 4);
+                        _b2 = (_b2 << 3) + (_b2 >> 2);
+
+                        _color[0] = _r1 << 16 | _g1 << 8 | _b1;
+                        _color[1] = _r2 << 16 | _g2 << 8 | _b2;
+                        _color[2] = ((((_r2 * 1) + (_r1 * 2)) / 3) << 16) | ((((_g2 * 1) + (_g1 * 2)) / 3) << 8) | (((_b2 * 1) + (_b1 * 2)) / 3);
+                        _color[3] = ((((_r1 * 1) + (_r2 * 2)) / 3) << 16) | ((((_g1 * 1) + (_g2 * 2)) / 3) << 8) | (((_b1 * 1) + (_b2 * 2)) / 3);
+
+                        _pixel = _y * Stride + _x;
+
+                        _code = Data[_pos++];
+
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 0 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 2 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 4 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 6 & 0x03]);
+                        _pixel += _stride2;
+
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 8 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 10 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 12 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 14 & 0x03]);
+                        _pixel += _stride2;
+
+                        _code = Data[_pos++];
+
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 0 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 2 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 4 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 6 & 0x03]);
+                        _pixel += _stride2;
+
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 8 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 10 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 12 & 0x03]);
+                        Pixels[_pixel++] |= unchecked((int)_color[_code >> 14 & 0x03]);
+                    }
+                }
+            }
+
+            private static void V8U8(ushort[] Data, Int32[] Pixels, int W, int H, int Stride)
+            {
+                int _pos = 0;
+
+                for (int _y = 0; _y < H; _y++)
+                {
+                    int _pixel = _y * Stride;
+
+                    for (int _x = 0; _x < W; _x++)
+                    {
+                        Pixels[_pixel++] = unchecked((int)(Data[_pos++] ^ 0xFFFFFFFF));
+                    }
+                }
             }
 
             private static Bitmap Linear(byte[] data, int w, int h, uint bpp)
@@ -700,12 +806,6 @@ namespace DDS
                     break;
                 case CompressionMode.RGB32:
                     break;
-                case CompressionMode.DXT1:
-                    return false;
-                case CompressionMode.DXT5:
-                    return false;
-                case CompressionMode.V8U8:
-                    return false;
                 default:
                     return false;
             }
