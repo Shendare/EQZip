@@ -1,11 +1,13 @@
 EQ-Zip EverQuest Archive Manager
 -----------
 
-Current Version: 1.2
+Current Version: 1.3
 
-Last Updated: 7/29/2015
+Last Updated: 7/30/2015
 
 Github Link: https://github.com/Shendare/EQZip
+
+To Download: https://github.com/Shendare/EQZip/releases
 
 #Features:
 
@@ -13,7 +15,7 @@ Github Link: https://github.com/Shendare/EQZip
 
 * Thumbnails of all supported texture types (RGB16/24/32, DXT1/2/3/4/5, V8U8)
 
-* Automatically converts textures to .dds uncompressed when importing (toggle)
+* Automatically converts textures to .dds with mipmaps when importing (toggle)
 
 * Automatically converts textures to .png, .gif, .bmp, or jpg when exporting (toggle)
 
@@ -31,7 +33,7 @@ Github Link: https://github.com/Shendare/EQZip
 
 * Recent menu feature to remember the last 9 archives worked with (toggle)
 
-* .Net 3.5 compatible, but archives will compress to about 30% smaller with .Net 4.5
+* .Net 3.5 compatible, but archives will compress about 30% smaller when compiled to .Net 4.5
 
 #Screenshots:
 
@@ -81,15 +83,42 @@ Github Link: https://github.com/Shendare/EQZip
 
 >Icons made from the freeware non-commercial "Aqua Neue (Graphite)" pack.
 
-#Planned Updates and Known Issues:
-
-* A feature will be added to vertically flip a texture, as some in-game geometry expects a texture to be bottom-up, and it can be hard to tell until you see it in-game.
-
-* An "Auto" import format will be implemented to auto-sense the best DDS format to use for an incoming texture based on how it uses an alpha channel (A1R5G5B5, R5G6B5, or A8R8G8B8). It will be the new default.
-
-* DDS imports do not support compression at this time.
-
 #Release Notes:
+
+7/30/2015 - Version 1.3
+
+* Added feature to easily horizontally or vertically flip an image to get it to show up properly in-game if the geometry
+  expects the texture to be stored in some way besides left-to-right, top-to-bottom.
+
+* Added help descriptions to the Preferences window for choosing Import and Export auto-conversion options.
+
+* Corrected 24/32-bit to 16-bit color scaling. NB: Integers truncate; they don't round.
+
+* DDS Import Format - Auto
+
+By default, importing graphics files to an EQ-Zip archive will automatically convert them to a .dds texture with mipmaps.
+The default .dds format is now "Auto", which tells EQ-Zip to pick the best format for the new texture based on the graphics
+file's use or absence of an alpha channel.
+
+  * All pixels fully opaque -> RGB16 - (R5G6B5)
+  * All pixels fully transparent or opaque -> ARGB16 (A1R5G5B5)
+  * Some pixels partially transparent -> RGB32 (A8R8G8B8)
+
+This yields the most compact format (without lossy compression) for any texture, while preserving good color and alpha channels.
+
+If you do not like Auto, you can specify how many bits-per-pixel to import .dds files at (16, 24, or 32), or deactivate
+auto-conversion altogether.
+
+This completes my planned features. If you think of a new feature you want to see, or come across a bug, let me know
+at Shendare at Shendare DotNet.
+
+Enjoy customizing your EverQuest experience with EQ-Zip!
+
+- Shendare (Jon D. Jackson)
+
+-----------
+
+Former Release Notes:
 
 7/29/2015 - Version 1.2
 

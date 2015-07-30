@@ -1025,9 +1025,9 @@ namespace DDS
 
                                             for (_x = 0; _x < _surface.Width; _x++)
                                             {
-                                                _b = _pixels[_xy++] * 31 / 255;
-                                                _g = _pixels[_xy++] * 31 / 255;
-                                                _r = _pixels[_xy++] * 31 / 255;
+                                                _b = (_pixels[_xy++] + 4) * 31 / 255;
+                                                _g = (_pixels[_xy++] + 4) * 31 / 255;
+                                                _r = (_pixels[_xy++] + 4) * 31 / 255;
 
                                                 _stream.Write((ushort)(_a | _r << 10 | _g << 5 | _b));
                                             }
@@ -1040,9 +1040,9 @@ namespace DDS
 
                                             for (_x = 0; _x < _surface.Width; _x++)
                                             {
-                                                _b = _pixels[_xy++] * 31 / 255;
-                                                _g = _pixels[_xy++] * 31 / 255;
-                                                _r = _pixels[_xy++] * 31 / 255;
+                                                _b = (_pixels[_xy++] + 4) * 31 / 255;
+                                                _g = (_pixels[_xy++] + 4) * 31 / 255;
+                                                _r = (_pixels[_xy++] + 4) * 31 / 255;
                                                 _a = (_pixels[_xy++] & 0x80) << 8;
 
                                                 _stream.Write((ushort)(_a | _r << 10 | _g << 5 | _b));
@@ -1058,9 +1058,9 @@ namespace DDS
 
                                             for (_x = 0; _x < _surface.Width; _x++)
                                             {
-                                                _b = _pixels[_xy++] * 31 / 255;
-                                                _g = _pixels[_xy++] * 31 / 255;
-                                                _r = _pixels[_xy++] * 31 / 255;
+                                                _b = (_pixels[_xy++] + 4) * 31 / 255;
+                                                _g = (_pixels[_xy++] + 4) * 31 / 255;
+                                                _r = (_pixels[_xy++] + 4) * 31 / 255;
                                                 _xy++;
 
                                                 _stream.Write((ushort)(_a | _r << 10 | _g << 5 | _b));
@@ -1079,9 +1079,9 @@ namespace DDS
 
                                             for (_x = 0; _x < _surface.Width; _x++)
                                             {
-                                                _b = _pixels[_xy++] * 31 / 255;
-                                                _g = _pixels[_xy++] * 63 / 255;
-                                                _r = _pixels[_xy++] * 31 / 255;
+                                                _b = (_pixels[_xy++] + 4) * 31 / 255;
+                                                _g = (_pixels[_xy++] + 2) * 63 / 255;
+                                                _r = (_pixels[_xy++] + 4) * 31 / 255;
 
                                                 _stream.Write((ushort)(_r << 11 | _g << 5 | _b));
                                             }
@@ -1105,9 +1105,9 @@ namespace DDS
                                                 }
                                                 else
                                                 {
-                                                    _r = _r * 31 / 255;
-                                                    _g = _g * 63 / 255;
-                                                    _b = _b * 31 / 255;
+                                                    _b = (_b + 4) * 31 / 255;
+                                                    _g = (_g + 2) * 63 / 255;
+                                                    _r = (_r + 4) * 31 / 255;
 
                                                     _stream.Write((ushort)(_r << 11 | _g << 5 | _b));
                                                 }
@@ -1123,9 +1123,10 @@ namespace DDS
 
                                             for (_x = 0; _x < _surface.Width; _x++)
                                             {
-                                                _b = _pixels[_xy++] * 31 / 255;
-                                                _g = _pixels[_xy++] * 63 / 255;
-                                                _r = _pixels[_xy++] * 31 / 255;
+                                                _b = (_pixels[_xy++] + 4) * 31 / 255;
+                                                _g = (_pixels[_xy++] + 2) * 63 / 255;
+                                                _r = (_pixels[_xy++] + 4) * 31 / 255;
+
                                                 _xy++;
 
                                                 _stream.Write((ushort)(_a | _r << 11 | _g << 5 | _b));

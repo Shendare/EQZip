@@ -38,7 +38,7 @@ namespace EQ_Zip
         public Dictionary<string, string> FileTypes = new Dictionary<string, string>()
         {
             { ".dds", "Texture (DirectDraw)" },
-            { ".bmp", "Texture" },
+            { ".bmp", "Texture (Bitmap)" },
             { ".png", "Texture (PNG)" },
             { ".tga", "Texture (Targa)" },
             { ".gif", "Texture (GIF)" },
@@ -221,6 +221,48 @@ namespace EQ_Zip
             ExportFiles(listView1.SelectedItems);
         }
 
+        private void flipHorizontallyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            foreach (ListViewItem _item in listView1.SelectedItems)
+            {
+                EQArchiveFile _file = (EQArchiveFile)_item.Tag;
+                Bitmap _image = (Bitmap)_file.GetImage();
+                
+                if (_image != null)
+                {
+                    _image.RotateFlip(RotateFlipType.RotateNoneFlipX);
+
+                    _file.SetImage(_image, (_file.ImageSubformat == "") ? _file.ImageFormat : _file.ImageSubformat);
+                    
+                    UpdateItem(_item, true);
+                }
+            }
+
+            CurrentArchive.IsDirty = true;
+            Status_Changed();
+        }
+
+        private void flipVerticallyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            foreach (ListViewItem _item in listView1.SelectedItems)
+            {
+                EQArchiveFile _file = (EQArchiveFile)_item.Tag;
+                Bitmap _image = (Bitmap)_file.GetImage();
+
+                if (_image != null)
+                {
+                    _image.RotateFlip(RotateFlipType.RotateNoneFlipY);
+
+                    _file.SetImage(_image, (_file.ImageSubformat == "") ? _file.ImageFormat : _file.ImageSubformat);
+
+                    UpdateItem(_item, true);
+                }
+            }
+
+            CurrentArchive.IsDirty = true;
+            Status_Changed();
+        }
+
         private void formMain_Activated(object sender, EventArgs e)
         {
             CheckClipboard();
@@ -228,11 +270,11 @@ namespace EQ_Zip
 
         private void formMain_FormClosing(object sender, FormClosingEventArgs e)
         {
+            CancelThumbnailThread();
+
             switch (e.CloseReason)
             {
                 case CloseReason.TaskManagerClosing:
-                    CancelThumbnailThread();
-                    
                     // Did something lock up?
                     return;
             }
@@ -245,8 +287,6 @@ namespace EQ_Zip
             }
             else
             {
-                CancelThumbnailThread();
-                
                 e.Cancel = true;
             }
         }
@@ -1374,21 +1414,7 @@ namespace EQ_Zip
             dialogExportFiles.SelectedPath = Settings.LastFolder_ExportFiles;
             dialogReplaceFile.InitialDirectory = Settings.LastFolder_ReplaceFile;
 
-            switch (Settings.ViewMode)
-            {
-                case "Tiles":
-                    listView1.View = View.Tile;
-                    break;
-                case "Details":
-                    listView1.View = View.Details;
-                    break;
-                case "Thumbnails":
-                    listView1.View = View.LargeIcon;
-                    break;
-                default:
-                    listView1.View = View.List;
-                    break;
-            }
+            ViewMode_Restore();
         }
 
         public bool NotInDebugger()
@@ -1456,25 +1482,105 @@ namespace EQ_Zip
             Settings.LastFolder_ExportFiles = dialogExportFiles.SelectedPath;
             Settings.LastFolder_ReplaceFile = dialogReplaceFile.InitialDirectory;
 
-            switch (listView1.View)
-            {
-                case View.Tile:
-                    Settings.ViewMode = "Tiles";
-                    break;
-                case View.Details:
-                    Settings.ViewMode = "Details";
-                    break;
-                case View.LargeIcon:
-                    Settings.ViewMode = "Thumbnails";
-                    break;
-                default:
-                    Settings.ViewMode = "List";
-                    break;
-            }
-
+            ViewMode_Changed();
+            
             Settings.Save();
         }
-        
+
+        public void Selection_Changed()
+        {
+            bool _selected = (listView1.SelectedItems.Count > 0);
+
+            cutToolStripMenuItem.Enabled = _selected;
+            cutToolStripButton.Enabled = cutToolStripMenuItem.Enabled;
+            cutContextMenuItem.Visible = _selected;
+            copyToolStripMenuItem.Enabled = _selected;
+            copyToolStripButton.Enabled = copyToolStripMenuItem.Enabled;
+            copyContextMenuItem.Visible = _selected;
+            deleteToolStripMenuItem.Enabled = _selected;
+            deleteToolStripButton.Enabled = deleteToolStripMenuItem.Enabled;
+            deleteContextMenuItem.Visible = _selected;
+            selectAllToolStripMenuItem.Enabled = (listView1.Items.Count > 0);
+            selectAllToolStripButton.Enabled = selectAllToolStripMenuItem.Enabled;
+            invertSelectionToolStripMenuItem.Enabled = (listView1.Items.Count > 0);
+            invertSelectionToolStripButton.Enabled = invertSelectionToolStripMenuItem.Enabled;
+            selectNoneToolStripMenuItem.Enabled = (listView1.Items.Count > 0);
+            selectNoneToolStripButton.Enabled = selectNoneToolStripMenuItem.Enabled;
+            viewToolStripMenuItem.Enabled = (listView1.Items.Count > 0);
+            viewToolStripSplitButton.Enabled = viewToolStripMenuItem.Enabled;
+            exportFilesToolStripMenuItem.Enabled = _selected;
+            exportFileToolStripButton.Enabled = exportFilesToolStripMenuItem.Enabled;
+            exportFilesToolStripMenuItem.Text = (listView1.SelectedItems.Count == 1) ? "&Export File..." : "&Export Files...";
+            exportFileToolStripButton.Text = (listView1.SelectedItems.Count == 1) ? "Export File..." : "Export Files...";
+            exportContextMenuItem.Visible = _selected;
+            exportAllToolStripMenuItem.Enabled = ((CurrentArchive != null) && (CurrentArchive.Files.Count > 0));
+            exportAllToolStripButton.Enabled = exportAllToolStripMenuItem.Enabled;
+            renameToolStripMenuItem.Enabled = (listView1.SelectedItems.Count == 1);
+            renameToolStripButton.Enabled = renameToolStripMenuItem.Enabled;
+            renameContextMenuItem.Visible = renameToolStripMenuItem.Enabled;
+
+            replaceToolStripMenuItem.Enabled = renameToolStripMenuItem.Enabled;
+            replaceToolStripButton.Enabled = replaceToolStripMenuItem.Enabled;
+            replaceContextMenuItem.Visible = replaceToolStripMenuItem.Enabled;
+
+            bool _imageSelected = false;
+
+            foreach (ListViewItem _item in listView1.SelectedItems)
+            {
+                if (((EQArchiveFile)_item.Tag).GetImage() != null)
+                {
+                    _imageSelected = true;
+
+                    break;
+                }
+            }
+
+            flipHorizontallyToolStripMenuItem.Enabled = _imageSelected;
+            flipHorizontallyToolStripButton.Enabled = flipHorizontallyToolStripMenuItem.Enabled;
+            flipHorizontalContextMenuItem.Visible = _imageSelected;
+            flipVerticallyToolStripMenuItem.Enabled = _imageSelected;
+            flipVerticallyToolStripButton.Enabled = flipVerticallyToolStripMenuItem.Enabled;
+            flipVerticalContextMenuItem.Visible = _imageSelected;
+            sepFlipContextMenuItem.Visible = _imageSelected;
+
+            if (CurrentArchive == null)
+            {
+                toolStripStatusLabelItemDetails.Text = ""; // "No archive loaded";
+            }
+            else
+            {
+                switch (listView1.SelectedItems.Count)
+                {
+                    case 0:
+                        toolStripStatusLabelItemDetails.Text = ""; //"No item selected";
+                        break;
+                    case 1:
+                        ListViewItem _item = listView1.SelectedItems[0];
+                        toolStripStatusLabelItemDetails.Text = _item.Text + " - " + _item.SubItems[2].Text + ((_item.SubItems[2].Text.Length != 0) ? " " : "") + _item.SubItems[1].Text + ", " + _item.SubItems[3].Text + "/" + _item.SubItems[4].Text + " bytes";
+                        string _ftype;
+                        if (Util.IsImage(_item.Text))
+                        {
+                            renameToolStripButton.Image = itemIcons.Images[3];
+                            renameToolStripButton.Text = "Rename Texture (F2)";
+                        }
+                        else if ((_ftype = GetFileType(_item.Text)) == "File")
+                        {
+                            renameToolStripButton.Image = itemIcons.Images[5];
+                            renameToolStripButton.Text = "Rename File (F2)";
+                        }
+                        else
+                        {
+                            renameToolStripButton.Image = itemIcons.Images[4];
+                            renameToolStripButton.Text = "Rename " + _ftype + " (F2)";
+                        }
+                        break;
+                    default:
+                        toolStripStatusLabelItemDetails.Text = listView1.SelectedItems.Count + " items selected";
+                        break;
+                }
+            }
+        }
+
         public void SpawnArchive(string Filename)
         {
             if ((CurrentArchive == null) || ((CurrentArchive.Filename == "(Untitled)") && !CurrentArchive.IsDirty))
@@ -1497,6 +1603,130 @@ namespace EQ_Zip
                 _spawn.Start();
             }
             catch { }
+        }
+
+        public void Status_Changed() { Status_Changed(false); }
+        public void Status_Changed(bool ForceListReload)
+        {
+            saveToolStripMenuItem.Enabled = ((CurrentArchive != null) && (CurrentArchive.IsDirty) && (!CurrentArchive.Filename.Equals("(Untitled)")));
+            saveToolStripButton.Enabled = saveToolStripMenuItem.Enabled;
+            saveAsToolStripMenuItem.Enabled = (CurrentArchive != null);
+            saveAsToolStripButton.Enabled = saveAsToolStripMenuItem.Enabled;
+            importFileToolStripMenuItem.Enabled = (CurrentArchive != null);
+            importFileToolStripButton.Enabled = importFileToolStripMenuItem.Enabled;
+
+            ViewMode_Changed();
+
+            if (ForceListReload || (LastArchive != CurrentArchive) || ArchiveChanged)
+            {
+                CancelThumbnailThread();
+                
+                listView1.Items.Clear();
+
+                while (itemThumbsLarge.Images.Count > 3)
+                {
+                    // Clear all but our default built-in icons
+
+                    itemThumbsLarge.Images.RemoveAt(3);
+                    itemThumbsSmall.Images.RemoveAt(3);
+                }
+
+                if (CurrentArchive != null)
+                {
+                    foreach (EQArchiveFile _file in CurrentArchive.Files.Values)
+                    {
+                        ListViewItem _item = new ListViewItem();
+
+                        _item.Tag = _file;
+                        UpdateItem(_item, false);
+
+                        listView1.Items.Add(_item);
+                    }
+                }
+
+                listView1.Enabled = (CurrentArchive != null);
+
+                UpdateMRUs();
+
+                LastArchive = CurrentArchive;
+                ArchiveChanged = false;
+                listView1.LabelEdit = false;
+
+                if (CurrentArchive != null)
+                {
+                    toolStripProgressBar1.Value = 0;
+                    toolStripProgressBar1.Maximum = CurrentArchive.Files.Count;
+                    toolStripProgressBar1.Visible = true;
+                }
+
+                threadListView.RunWorkerAsync();
+            }
+
+            ViewMode_Restore();
+
+            if (CurrentArchive == null)
+            {
+                this.Text = Application.ProductName + " " + VersionNumber;
+                toolStripStatusLabelFileCount.Text = ""; // "Files: 0";
+                toolStripStatusLabelArchiveSize.Text = ""; // "Size on Disk: 0";
+            }
+            else
+            {
+                this.Text = CurrentArchive.Filename + (CurrentArchive.IsDirty ? "* - " : " - ") + Application.ProductName + " " + VersionNumber;
+                toolStripStatusLabelFileCount.Text = "Files: " + CurrentArchive.Files.Count;
+                toolStripStatusLabelArchiveSize.Text = "Size on Disk: " + CurrentArchive.SizeOnDisk.ToString("###,###,###,##0");
+            }
+
+            Selection_Changed();
+        }
+
+        public void UpdateItem(ListViewItem Item, bool WaitForThumbnail)
+        {
+            EQArchiveFile _file = (EQArchiveFile)Item.Tag;
+
+            string _fileType = GetFileType(_file.Filename);
+
+            if (Util.IsImage(_file.Filename))
+            {
+                Item.ImageIndex = 1;
+            }
+            else if (_fileType.Equals("File"))
+            {
+                Item.ImageIndex = 0;
+            }
+            else
+            {
+                Item.ImageIndex = 2;
+            }
+
+            Item.Name = _file.Filename.ToLower();
+            Item.Text = _file.Filename;
+            Item.Tag = _file;
+            
+            while (Item.SubItems.Count < 5)
+            {
+                Item.SubItems.Add("");
+            }
+            
+            Item.SubItems[1].Text = _fileType;
+            Item.SubItems[2].Text = "";
+            Item.SubItems[3].Text = _file.Size.Compressed.ToString();
+            Item.SubItems[4].Text = _file.Size.Uncompressed.ToString();
+
+            if (WaitForThumbnail && (_file.GetImage() != null))
+            {
+                itemThumbsLarge.Images.Add(_file.GetThumbnail());
+                itemThumbsSmall.Images.Add(_file.GetThumbnail());
+
+                Item.ImageIndex = (itemThumbsLarge.Images.Count - 1);
+                Item.SubItems[1].Text = GetFileType(_file.ImageFormat) + ((_file.ImageSubformat == null) ? "" : " " + _file.ImageSubformat);
+                Item.SubItems[2].Text = _file.GetImage().Width.ToString() + "x" + _file.GetImage().Height.ToString();
+
+                if (Item.Selected && (listView1.SelectedItems.Count == 1))
+                {
+                    Selection_Changed();
+                }
+            }
         }
         
         public void UpdateMRUs() { UpdateMRUs(-1); }
@@ -1540,170 +1770,46 @@ namespace EQ_Zip
             }
         }
 
-        public void Selection_Changed()
+        public void ViewMode_Changed()
         {
-            bool _selected = (listView1.SelectedItems.Count > 0);
-
-            cutToolStripMenuItem.Enabled = _selected;
-            cutToolStripButton.Enabled = cutToolStripMenuItem.Enabled;
-            cutContextMenuItem.Visible = _selected;
-            copyToolStripMenuItem.Enabled = _selected;
-            copyToolStripButton.Enabled = copyToolStripMenuItem.Enabled;
-            copyContextMenuItem.Visible = _selected;
-            deleteToolStripMenuItem.Enabled = _selected;
-            deleteToolStripButton.Enabled = deleteToolStripMenuItem.Enabled;
-            deleteContextMenuItem.Visible = _selected;
-            selectAllToolStripMenuItem.Enabled = (listView1.Items.Count > 0);
-            selectAllToolStripButton.Enabled = selectAllToolStripMenuItem.Enabled;
-            invertSelectionToolStripMenuItem.Enabled = (listView1.Items.Count > 0);
-            invertSelectionToolStripButton.Enabled = invertSelectionToolStripMenuItem.Enabled;
-            selectNoneToolStripMenuItem.Enabled = (listView1.Items.Count > 0);
-            selectNoneToolStripButton.Enabled = selectNoneToolStripMenuItem.Enabled;
-            viewToolStripMenuItem.Enabled = (listView1.Items.Count > 0);
-            viewToolStripSplitButton.Enabled = viewToolStripMenuItem.Enabled;
-            exportFilesToolStripMenuItem.Enabled = _selected;
-            exportFileToolStripButton.Enabled = exportFilesToolStripMenuItem.Enabled;
-            exportFilesToolStripMenuItem.Text = (listView1.SelectedItems.Count == 1) ? "&Export File..." : "&Export Files...";
-            exportFileToolStripButton.Text = (listView1.SelectedItems.Count == 1) ? "Export File..." : "Export Files...";
-            exportContextMenuItem.Visible = _selected;
-            exportAllToolStripMenuItem.Enabled = ((CurrentArchive != null) && (CurrentArchive.Files.Count > 0));
-            exportAllToolStripButton.Enabled = exportAllToolStripMenuItem.Enabled;
-            renameToolStripMenuItem.Enabled = (listView1.SelectedItems.Count == 1);
-            renameToolStripButton.Enabled = renameToolStripMenuItem.Enabled;
-            renameContextMenuItem.Visible = renameToolStripMenuItem.Enabled;
-
-            replaceToolStripMenuItem.Enabled = renameToolStripMenuItem.Enabled;
-            replaceToolStripButton.Enabled = replaceToolStripMenuItem.Enabled;
-            replaceContextMenuItem.Visible = replaceToolStripMenuItem.Enabled;
-
-            if (CurrentArchive == null)
+            switch (listView1.View)
             {
-                toolStripStatusLabelItemDetails.Text = ""; // "No archive loaded";
-            }
-            else
-            {
-                switch (listView1.SelectedItems.Count)
-                {
-                    case 0:
-                        toolStripStatusLabelItemDetails.Text = ""; //"No item selected";
-                        break;
-                    case 1:
-                        ListViewItem _item = listView1.SelectedItems[0];
-                        toolStripStatusLabelItemDetails.Text = _item.Text + " - " + _item.SubItems[2].Text + ((_item.SubItems[2].Text.Length != 0) ? " " : "") + _item.SubItems[1].Text + ", " + _item.SubItems[3].Text + "/" + _item.SubItems[4].Text + " bytes";
-                        string _ftype;
-                        if (Util.IsImage(_item.Text))
-                        {
-                            renameToolStripButton.Image = itemIcons.Images[3];
-                            renameToolStripButton.Text = "Rename Texture (F2)";
-                        }
-                        else if ((_ftype = GetFileType(_item.Text)) == "File")
-                        {
-                            renameToolStripButton.Image = itemIcons.Images[5];
-                            renameToolStripButton.Text = "Rename File (F2)";
-                        }
-                        else
-                        {
-                            renameToolStripButton.Image = itemIcons.Images[4];
-                            renameToolStripButton.Text = "Rename " + _ftype + " (F2)";
-                        }
-                        break;
-                    default:
-                        toolStripStatusLabelItemDetails.Text = listView1.SelectedItems.Count + " items selected";
-                        break;
-                }
+                case View.Tile:
+                    Settings.ViewMode = "Tiles";
+                    break;
+                case View.Details:
+                    Settings.ViewMode = "Details";
+                    break;
+                case View.LargeIcon:
+                    Settings.ViewMode = "Thumbnails";
+                    break;
+                default:
+                    Settings.ViewMode = "List";
+                    break;
             }
         }
 
-        public void Status_Changed() { Status_Changed(false); }
-        public void Status_Changed(bool ForceListReload)
+        public void ViewMode_Restore()
         {
-            saveToolStripMenuItem.Enabled = ((CurrentArchive != null) && (CurrentArchive.IsDirty) && (!CurrentArchive.Filename.Equals("(Untitled)")));
-            saveToolStripButton.Enabled = saveToolStripMenuItem.Enabled;
-            saveAsToolStripMenuItem.Enabled = (CurrentArchive != null);
-            saveAsToolStripButton.Enabled = saveAsToolStripMenuItem.Enabled;
-            importFileToolStripMenuItem.Enabled = (CurrentArchive != null);
-            importFileToolStripButton.Enabled = importFileToolStripMenuItem.Enabled;
+            listView1.View = View.SmallIcon;
 
-            if (ForceListReload || (LastArchive != CurrentArchive) || ArchiveChanged)
+            switch (Settings.ViewMode)
             {
-                CancelThumbnailThread();
-                
-                listView1.Items.Clear();
-
-                while (itemThumbsLarge.Images.Count > 3)
-                {
-                    // Clear all but our default built-in icons
-
-                    itemThumbsLarge.Images.RemoveAt(3);
-                    itemThumbsSmall.Images.RemoveAt(3);
-                }
-
-                if (CurrentArchive != null)
-                {
-                    foreach (EQArchiveFile _file in CurrentArchive.Files.Values)
-                    {
-                        ListViewItem _item = new ListViewItem();
-
-                        string _fileType = GetFileType(_file.Filename);
-
-                        if (Util.IsImage(_file.Filename))
-                        {
-                            _item.ImageIndex = 1;
-                        }
-                        else if (_fileType.Equals("File"))
-                        {
-                            _item.ImageIndex = 0;
-                        }
-                        else
-                        {
-                            _item.ImageIndex = 2;
-                        }
-
-                        _item.Name = _file.Filename.ToLower();
-                        _item.Text = _file.Filename;
-                        _item.Tag = _file;
-                        _item.SubItems.Add(_fileType);
-                        _item.SubItems.Add("");
-                        _item.SubItems.Add(_file.Size.Compressed.ToString());
-                        _item.SubItems.Add(_file.Size.Uncompressed.ToString());
-
-                        listView1.Items.Add(_item);
-                    }
-                }
-
-                listView1.Enabled = (CurrentArchive != null);
-
-                UpdateMRUs();
-
-                LastArchive = CurrentArchive;
-                ArchiveChanged = false;
-                listView1.LabelEdit = false;
-
-                if (CurrentArchive != null)
-                {
-                    toolStripProgressBar1.Value = 0;
-                    toolStripProgressBar1.Maximum = CurrentArchive.Files.Count;
-                    toolStripProgressBar1.Visible = true;
-                }
-
-                threadListView.RunWorkerAsync();
+                case "Tiles":
+                    listView1.View = View.Tile;
+                    break;
+                case "Details":
+                    listView1.View = View.Details;
+                    break;
+                case "Thumbnails":
+                    listView1.View = View.LargeIcon;
+                    break;
+                default:
+                    listView1.View = View.List;
+                    break;
             }
-
-            if (CurrentArchive == null)
-            {
-                this.Text = Application.ProductName + " " + VersionNumber;
-                toolStripStatusLabelFileCount.Text = ""; // "Files: 0";
-                toolStripStatusLabelArchiveSize.Text = ""; // "Size on Disk: 0";
-            }
-            else
-            {
-                this.Text = CurrentArchive.Filename + (CurrentArchive.IsDirty ? "* - " : " - ") + Application.ProductName + " " + VersionNumber;
-                toolStripStatusLabelFileCount.Text = "Files: " + CurrentArchive.Files.Count;
-                toolStripStatusLabelArchiveSize.Text = "Size on Disk: " + CurrentArchive.SizeOnDisk.ToString("###,###,###,##0");
-            }
-
-            Selection_Changed();
         }
+
 
         #endregion
     }

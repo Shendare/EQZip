@@ -18,7 +18,10 @@
  */
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
 
@@ -120,7 +123,7 @@ namespace EQ_Zip
             return _data;
         }
 
-        public static int GetAlphaBits(System.Drawing.Image Image)
+        public static int GetAlphaBits(Bitmap Image)
         {
             if (Image == null)
             {
@@ -129,11 +132,62 @@ namespace EQ_Zip
 
             switch (Image.PixelFormat)
             {
-                case System.Drawing.Imaging.PixelFormat.Format16bppArgb1555:
+                case PixelFormat.Format16bppArgb1555:
+                    // No need to check whether alpha is actually being used. Best case scenario is A1R5G5B5->R5G6B5, and we'd have to make up
+                    // the extra Green resolution. No visual benefit.
                     return 1;
-                case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
-                case System.Drawing.Imaging.PixelFormat.Format32bppPArgb:
-                    return 8;
+                case PixelFormat.Format32bppArgb:
+                case PixelFormat.Format32bppPArgb:
+                    // 32bpp with alpha channel. This is the default format for a newly created bitmap.
+                    // Just because it was created with an alpha channel, however, doesn't mean it's actually being used.
+                    // We'll scan the channel real quick to see which is the optimal method for handling this bitmap's alpha.
+
+                    // 0 = Every pixel was turned on. This image is X8R8G8B8.
+                    // 1 = Every pixel was either turned fully on or fully off. This is easy to convert to A1R5G5B5 or DXT1.
+                    // 8 = Some pixels are partially on and partially off. We've gotta handle the full alpha range.
+    
+                    BitmapData _bits = Image.LockBits(new Rectangle(0, 0, Image.Width, Image.Height), ImageLockMode.ReadOnly, Image.PixelFormat);
+
+                    Int32 _stride = (((_bits.Stride < 0) ? -_bits.Stride : _bits.Stride) >> 2);
+
+                    IntPtr _bitPtr = _bits.Scan0;
+                    Int32[] _pixels = new Int32[_stride * _bits.Height];
+                    System.Runtime.InteropServices.Marshal.Copy(_bitPtr, _pixels, 0, _stride * _bits.Height);
+
+                    Image.UnlockBits(_bits);
+
+                    bool _is0 = false;
+
+                    for (int _y = 0; _y < _bits.Height; _y++)
+                    {
+                        int _xy = _y * _stride;
+
+                        for (int _x = 0; _x < _bits.Width; _x++)
+                        {
+                            byte _a = (byte)(_pixels[_xy++] >> 24);
+
+                            // Fudging on/off alpha checking to the highest/lowest 8 out of 256 values in case of antialiasing artifacts.
+
+                            if (_a < 0x08)
+                            {
+                                _is0 = true;
+                            }
+                            else if (_a < 0xF8)
+                            {
+                                // More than just OFF and ON alpha components.
+                                
+                                return 8;
+                            }
+                        }
+                    }
+
+                    if (_is0)
+                    {
+                        return 1; // Some pixels were turned off, but none were in the mid-range.
+                    }
+                    
+                    // All pixels were turned on. No alpha masking taking place.
+                    return 0;
                 case System.Drawing.Imaging.PixelFormat.Format64bppArgb:
                 case System.Drawing.Imaging.PixelFormat.Format64bppPArgb:
                     return 16;
@@ -236,7 +290,7 @@ namespace EQ_Zip
 
     public class Settings
     {
-        public static string ImportFormat = "16-bit";
+        public static string ImportFormat = "Auto";
         public static string ExportFormat = ".png";
 
         public static int RememberMRUs = 9;

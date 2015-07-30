@@ -43,6 +43,7 @@ namespace EQ_Zip
                     checkImportConvert.Checked = false;
                     listImportFormat.Text = "";
                     break;
+                case "Auto":
                 case "16-bit":
                 case "24-bit":
                 case "32-bit":
@@ -51,7 +52,7 @@ namespace EQ_Zip
                     break;
                 default:
                     checkImportConvert.Checked = true;
-                    listImportFormat.Text = "16-bit";
+                    listImportFormat.Text = "Auto";
                     break;
             }
 
@@ -92,7 +93,7 @@ namespace EQ_Zip
 
             if (listImportFormat.Text == "")
             {
-                listImportFormat.Text = "16-bit";
+                listImportFormat.Text = "Auto";
             }
         }
 
@@ -154,6 +155,16 @@ namespace EQ_Zip
             Settings.Changed = true;
 
             this.Close();
+        }
+
+        private void buttonHelpExport_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show(this, "Game textures are stored internally as DirectDraw Surface (.dds) files, because it is the only format that supports MipMaps, a way of scaling textures for Level of Detail based on distance from the camera so they don't get horribly pixellated and flicker between light and dark pixels.\n\nDDS support in Windows and in graphics software tends to be very spotty, however, so when exporting a texture from an EQ archive, EQ-Zip can automatically convert it into a .png image to preserve colors and alpha channels, or another format if you are not worried about that and don't want a .png.", "EQ-Zip Export Auto-Conversion Description", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void buttonHelpImport_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show(this, "Game textures are stored internally as DirectDraw Surface (.dds) files, because it is the only format that supports MipMaps, a way of scaling textures for Level of Detail based on distance from the camera so they don't get horribly pixellated and flicker between light and dark pixels.\n\nBecause most replacement textures you come across will likely be in a format other than .dds, when importing a texture to an EQ archive, EQ-Zip can automatically convert it into a .dds image and generate high quality bicubic MipMaps.\n\nYou can choose a specific number of bits per pixel to import at, or leave it at 'Auto', which will determine the best (smallest without losing visual quality) format based on the image's alpha channel use or absence.", "EQ-Zip Import Auto-Conversion Description", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }

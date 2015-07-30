@@ -30,6 +30,9 @@
         {
             this.listExportFormat = new System.Windows.Forms.ComboBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.buttonHelpImport = new System.Windows.Forms.Button();
+            this.buttonHelpExport = new System.Windows.Forms.Button();
+            this.listImportFormat = new System.Windows.Forms.ComboBox();
             this.checkImportConvert = new System.Windows.Forms.CheckBox();
             this.checkExportConvert = new System.Windows.Forms.CheckBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
@@ -42,7 +45,6 @@
             this.checkMRU = new System.Windows.Forms.CheckBox();
             this.buttonApply = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
-            this.listImportFormat = new System.Windows.Forms.ComboBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.SuspendLayout();
@@ -56,13 +58,15 @@
             ".gif",
             ".bmp",
             ".jpg"});
-            this.listExportFormat.Location = new System.Drawing.Point(263, 30);
+            this.listExportFormat.Location = new System.Drawing.Point(243, 30);
             this.listExportFormat.Name = "listExportFormat";
             this.listExportFormat.Size = new System.Drawing.Size(117, 21);
             this.listExportFormat.TabIndex = 1;
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.buttonHelpImport);
+            this.groupBox1.Controls.Add(this.buttonHelpExport);
             this.groupBox1.Controls.Add(this.listImportFormat);
             this.groupBox1.Controls.Add(this.checkImportConvert);
             this.groupBox1.Controls.Add(this.checkExportConvert);
@@ -74,10 +78,44 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = " Auto-Conversion ";
             // 
+            // buttonHelpImport
+            // 
+            this.buttonHelpImport.Location = new System.Drawing.Point(360, 63);
+            this.buttonHelpImport.Name = "buttonHelpImport";
+            this.buttonHelpImport.Size = new System.Drawing.Size(33, 23);
+            this.buttonHelpImport.TabIndex = 5;
+            this.buttonHelpImport.Text = "?";
+            this.buttonHelpImport.UseVisualStyleBackColor = true;
+            this.buttonHelpImport.Click += new System.EventHandler(this.buttonHelpImport_Click);
+            // 
+            // buttonHelpExport
+            // 
+            this.buttonHelpExport.Location = new System.Drawing.Point(360, 29);
+            this.buttonHelpExport.Name = "buttonHelpExport";
+            this.buttonHelpExport.Size = new System.Drawing.Size(33, 23);
+            this.buttonHelpExport.TabIndex = 4;
+            this.buttonHelpExport.Text = "?";
+            this.buttonHelpExport.UseVisualStyleBackColor = true;
+            this.buttonHelpExport.Click += new System.EventHandler(this.buttonHelpExport_Click);
+            // 
+            // listImportFormat
+            // 
+            this.listImportFormat.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.listImportFormat.FormattingEnabled = true;
+            this.listImportFormat.Items.AddRange(new object[] {
+            "Auto",
+            "16-bit",
+            "24-bit",
+            "32-bit"});
+            this.listImportFormat.Location = new System.Drawing.Point(263, 64);
+            this.listImportFormat.Name = "listImportFormat";
+            this.listImportFormat.Size = new System.Drawing.Size(97, 21);
+            this.listImportFormat.TabIndex = 3;
+            // 
             // checkImportConvert
             // 
             this.checkImportConvert.AutoSize = true;
-            this.checkImportConvert.Location = new System.Drawing.Point(36, 68);
+            this.checkImportConvert.Location = new System.Drawing.Point(16, 68);
             this.checkImportConvert.Name = "checkImportConvert";
             this.checkImportConvert.Size = new System.Drawing.Size(241, 17);
             this.checkImportConvert.TabIndex = 2;
@@ -88,11 +126,11 @@
             // checkExportConvert
             // 
             this.checkExportConvert.AutoSize = true;
-            this.checkExportConvert.Location = new System.Drawing.Point(36, 34);
+            this.checkExportConvert.Location = new System.Drawing.Point(16, 34);
             this.checkExportConvert.Name = "checkExportConvert";
-            this.checkExportConvert.Size = new System.Drawing.Size(222, 17);
+            this.checkExportConvert.Size = new System.Drawing.Size(219, 17);
             this.checkExportConvert.TabIndex = 0;
-            this.checkExportConvert.Text = "When &Extracting images, auto-convert to:";
+            this.checkExportConvert.Text = "When &Exporting images, auto-convert to:";
             this.checkExportConvert.UseVisualStyleBackColor = true;
             this.checkExportConvert.CheckedChanged += new System.EventHandler(this.checkExportConvert_CheckedChanged);
             // 
@@ -211,19 +249,6 @@
             this.buttonCancel.UseVisualStyleBackColor = true;
             this.buttonCancel.Click += new System.EventHandler(this.buttonCancel_Click);
             // 
-            // listImportFormat
-            // 
-            this.listImportFormat.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
-            this.listImportFormat.FormattingEnabled = true;
-            this.listImportFormat.Items.AddRange(new object[] {
-            "16-bit",
-            "24-bit",
-            "32-bit"});
-            this.listImportFormat.Location = new System.Drawing.Point(283, 64);
-            this.listImportFormat.Name = "listImportFormat";
-            this.listImportFormat.Size = new System.Drawing.Size(97, 21);
-            this.listImportFormat.TabIndex = 3;
-            // 
             // formPreferences
             // 
             this.AcceptButton = this.buttonApply;
@@ -270,6 +295,8 @@
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.CheckBox checkConfirmRenameOverwrite;
         private System.Windows.Forms.ComboBox listImportFormat;
+        private System.Windows.Forms.Button buttonHelpImport;
+        private System.Windows.Forms.Button buttonHelpExport;
 
     }
 }

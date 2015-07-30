@@ -687,56 +687,32 @@ namespace EQ_Zip
 
             NewFormat = NewFormat.ToLower();
 
+            if (NewFormat == "auto")
+            {
+                switch (GetAlphaBits())
+                {
+                    case 0:
+                    case 1:
+                        NewFormat = "16-bit";
+                        break;
+                    
+                    case 8:
+                        NewFormat = "32-bit";
+                        break;
+                    
+                    default: // ?
+                        NewFormat = "32-bit";
+                        break;
+                }
+            }
+
             EQArchiveFile _newFile = null;
 
             if (NewFormat != this.ImageFormat)
             {
                 _newFile = new EQArchiveFile();
                 _newFile.Filename = this.Filename;
-
-                using (MemoryStream _newStream = new MemoryStream())
-                {
-                    switch (NewFormat)
-                    {
-                        case "16-bit":
-                            if (GetAlphaBits() == 0)
-                            {
-                                DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.R5G6B5);
-                            }
-                            else
-                            {
-                                DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.A1R5G5B5);
-                            }
-                            break;
-                        case "24-bit":
-                            DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB24);
-                            break;
-                        case "32-bit":
-                            DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB32);
-                            break;
-                        case ".bmp":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Bmp);
-                            break;
-                        case ".png":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Png);
-                            break;
-                        case ".gif":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Gif);
-                            break;
-                        case ".tif":
-                        case ".tiff":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Tiff);
-                            break;
-                        case ".jpg":
-                        case ".jpeg":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Jpeg);
-                            break;
-                        default:
-                            throw new Exception("Unsupported conversion format");
-                    }
-
-                    _newFile.SetContents(_newStream.ToArray());
-                }
+                _newFile.SetImage(this.GetImage(), NewFormat);
             }
 
             if (ChangeExtension && !System.IO.Path.GetExtension(this.Filename).Equals((NewFormat[0] == '.' ? NewFormat : ".dds"), StringComparison.CurrentCultureIgnoreCase))
@@ -770,7 +746,7 @@ namespace EQ_Zip
         {
             if (_AlphaBits == -1)
             {
-                _AlphaBits = Util.GetAlphaBits(this.GetImage());
+                _AlphaBits = Util.GetAlphaBits((Bitmap)this.GetImage());
             }
 
             return _AlphaBits;
@@ -958,6 +934,84 @@ namespace EQ_Zip
             }
 
             return _Thumbnail;
+        }
+
+        public void SetImage(Image NewImage, string Format)
+        {
+            this._Image = NewImage;
+            this._IsImageChecked = true;
+            this._Thumbnail = null;
+
+            Format = Format.ToLower();
+            this.ImageFormat = Format;
+
+            if (NewImage == null)
+            {
+                this.SetContents(null);
+            }
+            else
+            {
+                using (MemoryStream _newStream = new MemoryStream())
+                {
+                    switch (Format)
+                    {
+                        case "16-bit":
+                        case "rgb16":
+                        case "argb16":
+                        case "dxt1":
+                            if (GetAlphaBits() == 0)
+                            {
+                                DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.R5G6B5);
+                                this.ImageFormat = ".dds";
+                                this.ImageSubformat = "RGB16";
+                            }
+                            else
+                            {
+                                DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.A1R5G5B5);
+                                this.ImageFormat = ".dds";
+                                this.ImageSubformat = "ARGB16";
+                            }
+                            break;
+                        case "24-bit":
+                        case "rgb24":
+                            DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB24);
+                            this.ImageFormat = ".dds";
+                            this.ImageSubformat = "RGB24";
+                            break;
+                        case "32-bit":
+                        case "rgb32":
+                        case "dxt2":
+                        case "dxt3":
+                        case "dxt4":
+                        case "dxt5":
+                            DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB32);
+                            this.ImageFormat = ".dds";
+                            this.ImageSubformat = "RGB32";
+                            break;
+                        case ".bmp":
+                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Bmp);
+                            break;
+                        case ".png":
+                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Png);
+                            break;
+                        case ".gif":
+                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Gif);
+                            break;
+                        case ".tif":
+                        case ".tiff":
+                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Tiff);
+                            break;
+                        case ".jpg":
+                        case ".jpeg":
+                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Jpeg);
+                            break;
+                        default:
+                            throw new Exception("Unsupported conversion format");
+                    }
+
+                    this.SetContents(_newStream.ToArray());
+                }
+            }
         }
 
         public Result SetContents(byte[] Data)
