@@ -1366,14 +1366,15 @@ namespace EQ_Zip
 
         public void LoadSettings()
         {
-            dialogOpenArchive.InitialDirectory = Properties.Settings.Default.LastFolder_OpenArchive;
-            dialogSaveArchive.InitialDirectory = Properties.Settings.Default.LastFolder_SaveAsArchive;
-            dialogImportFiles.InitialDirectory = Properties.Settings.Default.LastFolder_ImportFiles;
-            dialogExportFiles.SelectedPath = Properties.Settings.Default.LastFolder_ExportFiles;
-            dialogReplaceFile.InitialDirectory = Properties.Settings.Default.LastFolder_ReplaceFile;
-            Settings.ImportFormat = Properties.Settings.Default.ImportFormat;
-            Settings.ExportFormat = Properties.Settings.Default.ExportFormat;
-            switch (Properties.Settings.Default.ViewMode)
+            Settings.Load();
+            
+            dialogOpenArchive.InitialDirectory = Settings.LastFolder_OpenArchive;
+            dialogSaveArchive.InitialDirectory = Settings.LastFolder_SaveAsArchive;
+            dialogImportFiles.InitialDirectory = Settings.LastFolder_ImportFiles;
+            dialogExportFiles.SelectedPath = Settings.LastFolder_ExportFiles;
+            dialogReplaceFile.InitialDirectory = Settings.LastFolder_ReplaceFile;
+
+            switch (Settings.ViewMode)
             {
                 case "Tiles":
                     listView1.View = View.Tile;
@@ -1388,15 +1389,6 @@ namespace EQ_Zip
                     listView1.View = View.List;
                     break;
             }
-            Settings.RememberMRUs = Properties.Settings.Default.RememberMRUs;
-            for (int _i = 1; _i <= Settings.RememberMRUs; _i++)
-            {
-                Settings.MRUs[_i - 1] = (string)Properties.Settings.Default["MRU" + _i.ToString()];
-            }
-
-            Settings.ConfirmExportOverwrite = (bool)Properties.Settings.Default["ConfirmExportOverwrite"];
-            Settings.ConfirmImportOverwrite = (bool)Properties.Settings.Default["ConfirmImportOverwrite"];
-            Settings.ConfirmRenameOverwrite = (bool)Properties.Settings.Default["ConfirmRenameOverwrite"];
         }
 
         public bool NotInDebugger()
@@ -1458,39 +1450,29 @@ namespace EQ_Zip
         
         public void SaveSettings()
         {
-            Properties.Settings.Default.LastFolder_OpenArchive = dialogOpenArchive.InitialDirectory;
-            Properties.Settings.Default.LastFolder_SaveAsArchive = dialogSaveArchive.InitialDirectory;
-            Properties.Settings.Default.LastFolder_ImportFiles = dialogImportFiles.InitialDirectory;
-            Properties.Settings.Default.LastFolder_ExportFiles = dialogExportFiles.SelectedPath;
-            Properties.Settings.Default.LastFolder_ReplaceFile = dialogReplaceFile.InitialDirectory;
-            Properties.Settings.Default.ImportFormat = Settings.ImportFormat;
-            Properties.Settings.Default.ExportFormat = Settings.ExportFormat;
+            Settings.LastFolder_OpenArchive = dialogOpenArchive.InitialDirectory;
+            Settings.LastFolder_SaveAsArchive = dialogSaveArchive.InitialDirectory;
+            Settings.LastFolder_ImportFiles = dialogImportFiles.InitialDirectory;
+            Settings.LastFolder_ExportFiles = dialogExportFiles.SelectedPath;
+            Settings.LastFolder_ReplaceFile = dialogReplaceFile.InitialDirectory;
+
             switch (listView1.View)
             {
                 case View.Tile:
-                    Properties.Settings.Default.ViewMode = "Tiles";
+                    Settings.ViewMode = "Tiles";
                     break;
                 case View.Details:
-                    Properties.Settings.Default.ViewMode = "Details";
+                    Settings.ViewMode = "Details";
                     break;
                 case View.LargeIcon:
-                    Properties.Settings.Default.ViewMode = "Thumbnails";
+                    Settings.ViewMode = "Thumbnails";
                     break;
                 default:
-                    Properties.Settings.Default.ViewMode = "List";
+                    Settings.ViewMode = "List";
                     break;
             }
-            Properties.Settings.Default.RememberMRUs = Settings.RememberMRUs;
-            for (int _i = 1; _i <= Settings.RememberMRUs; _i++)
-            {
-                Properties.Settings.Default["MRU" + _i.ToString()] = Settings.MRUs[_i - 1];
-            }
 
-            Properties.Settings.Default["ConfirmExportOverwrite"] = Settings.ConfirmExportOverwrite;
-            Properties.Settings.Default["ConfirmImportOverwrite"] = Settings.ConfirmImportOverwrite;
-            Properties.Settings.Default["ConfirmRenameOverwrite"] = Settings.ConfirmRenameOverwrite;
-
-            Properties.Settings.Default.Save();
+            Settings.Save();
         }
         
         public void SpawnArchive(string Filename)
@@ -1724,24 +1706,5 @@ namespace EQ_Zip
         }
 
         #endregion
-    }
-
-    public class Settings
-    {
-        public static string ImportFormat = ".dds";
-        public static string ExportFormat = ".png";
-
-        public static int RememberMRUs = 9;
-        public static string[] MRUs = new string[9] { "", "", "", "", "", "", "", "", "" };
-
-        public static bool MipMapsOnDDSExport = true;
-
-        public static bool CompressImportDDS = true;
-
-        public static bool ConfirmExportOverwrite = true;
-        public static bool ConfirmImportOverwrite = false;
-        public static bool ConfirmRenameOverwrite = true;
-
-        public static bool Changed = false;
     }
 }

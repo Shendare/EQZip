@@ -30,10 +30,10 @@
         {
             this.listExportFormat = new System.Windows.Forms.ComboBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.checkImportCompress = new System.Windows.Forms.CheckBox();
             this.checkImportConvert = new System.Windows.Forms.CheckBox();
             this.checkExportConvert = new System.Windows.Forms.CheckBox();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.checkConfirmRenameOverwrite = new System.Windows.Forms.CheckBox();
             this.checkConfirmExportOverwrite = new System.Windows.Forms.CheckBox();
             this.checkConfirmImportOverwrite = new System.Windows.Forms.CheckBox();
             this.label2 = new System.Windows.Forms.Label();
@@ -42,7 +42,7 @@
             this.checkMRU = new System.Windows.Forms.CheckBox();
             this.buttonApply = new System.Windows.Forms.Button();
             this.buttonCancel = new System.Windows.Forms.Button();
-            this.checkConfirmRenameOverwrite = new System.Windows.Forms.CheckBox();
+            this.listImportFormat = new System.Windows.Forms.ComboBox();
             this.groupBox1.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.SuspendLayout();
@@ -53,8 +53,6 @@
             this.listExportFormat.FormattingEnabled = true;
             this.listExportFormat.Items.AddRange(new object[] {
             ".png",
-            ".dds (no MipMaps)",
-            ".dds (with MipMaps)",
             ".gif",
             ".bmp",
             ".jpg"});
@@ -65,7 +63,7 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.checkImportCompress);
+            this.groupBox1.Controls.Add(this.listImportFormat);
             this.groupBox1.Controls.Add(this.checkImportConvert);
             this.groupBox1.Controls.Add(this.checkExportConvert);
             this.groupBox1.Controls.Add(this.listExportFormat);
@@ -75,17 +73,6 @@
             this.groupBox1.TabIndex = 3;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = " Auto-Conversion ";
-            // 
-            // checkImportCompress
-            // 
-            this.checkImportCompress.AutoSize = true;
-            this.checkImportCompress.Enabled = false;
-            this.checkImportCompress.Location = new System.Drawing.Point(283, 68);
-            this.checkImportCompress.Name = "checkImportCompress";
-            this.checkImportCompress.Size = new System.Drawing.Size(84, 17);
-            this.checkImportCompress.TabIndex = 3;
-            this.checkImportCompress.Text = "&Compressed";
-            this.checkImportCompress.UseVisualStyleBackColor = true;
             // 
             // checkImportConvert
             // 
@@ -124,6 +111,16 @@
             this.groupBox2.TabIndex = 4;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = " Other Preferences ";
+            // 
+            // checkConfirmRenameOverwrite
+            // 
+            this.checkConfirmRenameOverwrite.AutoSize = true;
+            this.checkConfirmRenameOverwrite.Location = new System.Drawing.Point(263, 97);
+            this.checkConfirmRenameOverwrite.Name = "checkConfirmRenameOverwrite";
+            this.checkConfirmRenameOverwrite.Size = new System.Drawing.Size(74, 17);
+            this.checkConfirmRenameOverwrite.TabIndex = 9;
+            this.checkConfirmRenameOverwrite.Text = "Ren&aming";
+            this.checkConfirmRenameOverwrite.UseVisualStyleBackColor = true;
             // 
             // checkConfirmExportOverwrite
             // 
@@ -214,15 +211,18 @@
             this.buttonCancel.UseVisualStyleBackColor = true;
             this.buttonCancel.Click += new System.EventHandler(this.buttonCancel_Click);
             // 
-            // checkConfirmRenameOverwrite
+            // listImportFormat
             // 
-            this.checkConfirmRenameOverwrite.AutoSize = true;
-            this.checkConfirmRenameOverwrite.Location = new System.Drawing.Point(263, 97);
-            this.checkConfirmRenameOverwrite.Name = "checkConfirmRenameOverwrite";
-            this.checkConfirmRenameOverwrite.Size = new System.Drawing.Size(74, 17);
-            this.checkConfirmRenameOverwrite.TabIndex = 9;
-            this.checkConfirmRenameOverwrite.Text = "Ren&aming";
-            this.checkConfirmRenameOverwrite.UseVisualStyleBackColor = true;
+            this.listImportFormat.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.listImportFormat.FormattingEnabled = true;
+            this.listImportFormat.Items.AddRange(new object[] {
+            "16-bit",
+            "24-bit",
+            "32-bit"});
+            this.listImportFormat.Location = new System.Drawing.Point(283, 64);
+            this.listImportFormat.Name = "listImportFormat";
+            this.listImportFormat.Size = new System.Drawing.Size(97, 21);
+            this.listImportFormat.TabIndex = 3;
             // 
             // formPreferences
             // 
@@ -257,7 +257,6 @@
 
         private System.Windows.Forms.ComboBox listExportFormat;
         private System.Windows.Forms.GroupBox groupBox1;
-        private System.Windows.Forms.CheckBox checkImportCompress;
         private System.Windows.Forms.CheckBox checkImportConvert;
         private System.Windows.Forms.CheckBox checkExportConvert;
         private System.Windows.Forms.GroupBox groupBox2;
@@ -270,6 +269,7 @@
         private System.Windows.Forms.CheckBox checkConfirmImportOverwrite;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.CheckBox checkConfirmRenameOverwrite;
+        private System.Windows.Forms.ComboBox listImportFormat;
 
     }
 }

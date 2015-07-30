@@ -22,6 +22,16 @@
  * 
  */
 
+/*
+ * It's a little strange that there is a separate EQArchive class and PFSFormat class to handle EQ package
+ * files. When I began the project, I was under the mistaken impression that S3D and EQG files used different
+ * file formats for storing their contents, so I had a PFSArchives.cs and an EQGArchives.cs both tied to
+ * EQArchive.cs. When I learned that both used the same format, I removed EQGArchives.cs, but because the
+ * remaining two classes are working fine together, I have not merged them at this point.
+ * 
+ * - Shendare (Jon D. Jackson)
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -688,7 +698,20 @@ namespace EQ_Zip
                 {
                     switch (NewFormat)
                     {
-                        case ".dds":
+                        case "16-bit":
+                            if (GetAlphaBits() == 0)
+                            {
+                                DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.R5G6B5);
+                            }
+                            else
+                            {
+                                DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.A1R5G5B5);
+                            }
+                            break;
+                        case "24-bit":
+                            DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB24);
+                            break;
+                        case "32-bit":
                             DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB32);
                             break;
                         case ".bmp":
@@ -716,7 +739,7 @@ namespace EQ_Zip
                 }
             }
 
-            if (ChangeExtension && !System.IO.Path.GetExtension(this.Filename).Equals(NewFormat, StringComparison.CurrentCultureIgnoreCase))
+            if (ChangeExtension && !System.IO.Path.GetExtension(this.Filename).Equals((NewFormat[0] == '.' ? NewFormat : ".dds"), StringComparison.CurrentCultureIgnoreCase))
             {
                 // Gotta change the extension
 
@@ -726,7 +749,7 @@ namespace EQ_Zip
                     _newFile.SetContents(this.GetContents());
                 }
 
-                _newFile.Filename = System.IO.Path.GetFileNameWithoutExtension(this.Filename) + NewFormat;
+                _newFile.Filename = System.IO.Path.GetFileNameWithoutExtension(this.Filename) + (NewFormat[0] == '.' ? NewFormat : ".dds");
             }
             else
             {
@@ -743,6 +766,16 @@ namespace EQ_Zip
             return _newFile;
         }
 
+        public int GetAlphaBits()
+        {
+            if (_AlphaBits == -1)
+            {
+                _AlphaBits = Util.GetAlphaBits(this.GetImage());
+            }
+
+            return _AlphaBits;
+        }
+        
         public byte[] GetContents()
         {
             if (!this._IsUncompressed)
@@ -837,6 +870,7 @@ namespace EQ_Zip
 
             this.ImageSubformat = "";
             this.ImageFormat = "";
+            this._AlphaBits = -1;
 
             if (_bytes == null)
             {
@@ -895,7 +929,7 @@ namespace EQ_Zip
                     _loading = _dds.Images[0];
 
                     this.ImageFormat = ".dds";
-                    this.ImageSubformat = _dds.Format.ToString();
+                    this.ImageSubformat = _dds.FormatName;
                 }
                 catch
                 {
@@ -1001,6 +1035,8 @@ namespace EQ_Zip
 
         protected byte[] _UncompressedData;
         protected bool _IsUncompressed;
+
+        protected int _AlphaBits = -1;
 
         #endregion
 

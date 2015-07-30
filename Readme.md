@@ -1,9 +1,9 @@
 EQ-Zip EverQuest Archive Manager
 -----------
 
-Current Version: 1.1
+Current Version: 1.2
 
-Last Updated: 7/28/2015
+Last Updated: 7/29/2015
 
 Github Link: https://github.com/Shendare/EQZip
 
@@ -11,11 +11,11 @@ Github Link: https://github.com/Shendare/EQZip
 
 * Creates, Loads and Saves .S3D, .EQG, .PFS, and .PAK EverQuest package files
 
-* Thumbnails of all supported texture types (RGB24, RGB32, DXT1/2/3/4/5, V8U8)
+* Thumbnails of all supported texture types (RGB16/24/32, DXT1/2/3/4/5, V8U8)
 
 * Automatically converts textures to .dds uncompressed when importing (toggle)
 
-* Automatically converts textures to .png, .dds, .gif, .bmp, or jpg when exporting (toggle)
+* Automatically converts textures to .png, .gif, .bmp, or jpg when exporting (toggle)
 
 * Drag-and-drop files into or out of an archive and Windows Explorer, or between EQ-Zip windows!
 
@@ -30,6 +30,8 @@ Github Link: https://github.com/Shendare/EQZip
 * Export all files in an archive to a destination folder
 
 * Recent menu feature to remember the last 9 archives worked with (toggle)
+
+* .Net 3.5 compatible, but archives will compress to about 30% smaller with .Net 4.5
 
 #Screenshots:
 
@@ -79,19 +81,22 @@ Github Link: https://github.com/Shendare/EQZip
 
 >Icons made from the freeware non-commercial "Aqua Neue (Graphite)" pack.
 
-#Known Issues and Planned Updates:
-
-* DDS conversion does not support compression. This is intended. DXT compression is very lossy ( see http://www.fsdeveloper.com/wiki/index.php?title=DXT_compression_explained ), and graphics cards have plenty of video memory for uncompressed textures these days.
-
-* Support for reading and writing 16-bit uncompressed DDS textures is planned, as it would cut image sizes in half with much lower loss of definition than DXT compression.
+#Planned Updates and Known Issues:
 
 * A feature will be added to vertically flip a texture, as some in-game geometry expects a texture to be bottom-up, and it can be hard to tell until you see it in-game.
 
-* I plan to look into an algorithm for enhancing the sharpness of DDS mipmaps, so that they don't get quite so blurry as they get smaller.
+* An "Auto" import format will be implemented to auto-sense the best DDS format to use for an incoming texture based on how it uses an alpha channel (A1R5G5B5, R5G6B5, or A8R8G8B8). It will be the new default.
 
-* It's a little strange that there is a separate EQArchive class and PFSFormat class to handle EQ package files. When I began the project, I was under the mistaken impression that S3D and EQG files used different file formats for storing their contents, so I had a PFSArchives.cs and an EQGArchives.cs both tied to EQArchive.cs. When I learned that both used the same format, I removed EQGArchives.cs, but because the remaining two classes are working fine together, I have not merged them at this point.
+* DDS imports do not support compression at this time.
 
 #Release Notes:
+
+7/29/2015 - Version 1.2
+
+* Noticeable improvement in quality of texture mipmaps with high quality bicubic sampling
+* Added full support for 16-bit DDS textures (auto-sensing A1R5G5B5 or R5G6B5)
+* Set default import format to RGB16
+* Code cleanup (Settings -> Util.cs)
 
 7/28/2015 - Version 1.1
 

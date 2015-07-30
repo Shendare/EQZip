@@ -18,61 +18,42 @@ namespace EQ_Zip
 
         private void formPreferences_Load(object sender, EventArgs e)
         {
-            bool _tryAgain = false;
-
-            do
+            switch (Settings.ExportFormat)
             {
-                switch (Settings.ExportFormat)
-                {
-                    case ".png":
-                    case ".bmp":
-                    case ".jpg":
-                    case ".gif":
-                        checkExportConvert.Checked = true;
-                        listExportFormat.Text = Settings.ExportFormat;
-                        break;
-                    case ".dds":
-                        checkExportConvert.Checked = true;
-                        if (Settings.MipMapsOnDDSExport)
-                        {
-                            listExportFormat.Text = ".dds (with MipMaps)";
-                        }
-                        else
-                        {
-                            listExportFormat.Text = ".dds (no MipMaps)";
-                        }
-                        break;
-                    case "":
-                        checkExportConvert.Checked = false;
-                        listExportFormat.Enabled = false;
-                        break;
-                    default:
-                        Settings.ExportFormat = ".dds";
-                        _tryAgain = true;
-                        break;
-                }
-            } while (_tryAgain);
+                case ".png":
+                case ".bmp":
+                case ".jpg":
+                case ".gif":
+                    checkExportConvert.Checked = true;
+                    listExportFormat.Text = Settings.ExportFormat;
+                    break;
+                case "":
+                    checkExportConvert.Checked = false;
+                    listExportFormat.Enabled = false;
+                    break;
+                default:
+                    checkExportConvert.Checked = true;
+                    listExportFormat.Text = ".png";
+                    break;
+            }
 
-            _tryAgain = false;
-
-            do
+            switch (Settings.ImportFormat)
             {
-                switch (Settings.ImportFormat)
-                {
-                    case ".dds":
-                        checkImportConvert.Checked = true;
-                        checkImportCompress.Checked = Settings.CompressImportDDS;
-                        break;
-                    case "":
-                        checkImportConvert.Checked = false;
-                        checkImportCompress.Enabled = false;
-                        break;
-                    default:
-                        Settings.ImportFormat = ".dds";
-                        _tryAgain = true;
-                        break;
-                }
-            } while (_tryAgain);
+                case "":
+                    checkImportConvert.Checked = false;
+                    listImportFormat.Text = "";
+                    break;
+                case "16-bit":
+                case "24-bit":
+                case "32-bit":
+                    checkImportConvert.Checked = true;
+                    listImportFormat.Text = Settings.ImportFormat;
+                    break;
+                default:
+                    checkImportConvert.Checked = true;
+                    listImportFormat.Text = "16-bit";
+                    break;
+            }
 
             if (Settings.RememberMRUs == 0)
             {
@@ -93,8 +74,6 @@ namespace EQ_Zip
             checkConfirmImportOverwrite.Checked = Settings.ConfirmImportOverwrite;
             checkConfirmExportOverwrite.Checked = Settings.ConfirmExportOverwrite;
             checkConfirmRenameOverwrite.Checked = Settings.ConfirmRenameOverwrite;
-            
-            checkImportCompress.Checked = false; // Not yet supported
         }
 
         private void checkExportConvert_CheckedChanged(object sender, EventArgs e)
@@ -109,7 +88,12 @@ namespace EQ_Zip
 
         private void checkImportConvert_CheckedChanged(object sender, EventArgs e)
         {
-            //checkImportCompress.Enabled = checkImportConvert.Checked;
+            listImportFormat.Enabled = checkImportConvert.Checked;
+
+            if (listImportFormat.Text == "")
+            {
+                listImportFormat.Text = "16-bit";
+            }
         }
 
         private void checkMRU_CheckedChanged(object sender, EventArgs e)
@@ -132,20 +116,7 @@ namespace EQ_Zip
             }
             else
             {
-                switch (listExportFormat.Text)
-                {
-                    case ".dds (no MipMaps)":
-                        Settings.ExportFormat = ".dds";
-                        Settings.MipMapsOnDDSExport = false;
-                        break;
-                    case ".dds (with MipMaps)":
-                        Settings.ExportFormat = ".dds";
-                        Settings.MipMapsOnDDSExport = true;
-                        break;
-                    default:
-                        Settings.ExportFormat = listExportFormat.Text;
-                        break;
-                }
+                Settings.ExportFormat = listExportFormat.Text;
             }
 
             if (checkImportConvert.Checked == false)
@@ -154,8 +125,7 @@ namespace EQ_Zip
             }
             else
             {
-                Settings.ImportFormat = ".dds";
-                Settings.CompressImportDDS = checkImportCompress.Checked;
+                Settings.ImportFormat = listImportFormat.Text;
             }
 
             if (checkMRU.Checked == false)

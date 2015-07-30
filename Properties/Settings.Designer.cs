@@ -217,31 +217,7 @@ namespace EQ_Zip.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool CompressImportedDDS {
-            get {
-                return ((bool)(this["CompressImportedDDS"]));
-            }
-            set {
-                this["CompressImportedDDS"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public string MipMapsOnDDSExport {
-            get {
-                return ((string)(this["MipMapsOnDDSExport"]));
-            }
-            set {
-                this["MipMapsOnDDSExport"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute(".dds")]
+        [global::System.Configuration.DefaultSettingValueAttribute("16-bit")]
         public string ImportFormat {
             get {
                 return ((string)(this["ImportFormat"]));

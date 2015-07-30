@@ -1,6 +1,6 @@
 ﻿/*
  * 
- *  DDSImage.cs - DDS Texture File Reading (RGB24/32, DXT1/2/3/4/5, V8U8) and Writing (RGB24/32 Only)
+ *  DDSImage.cs - DDS Texture File Reading (Uncompressed, DXT1/2/3/4/5, V8U8) and Writing (Uncompressed Only)
  *  
  *  By Shendare (Jon D. Jackson)
  * 
@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 
@@ -83,9 +84,10 @@ namespace DDS
             DXT4 = 4,
             DXT5 = 5,
             V8U8 = 7,
-            RGBI8 = 8,
             DX10 = 10,
+            A1R5G5B5 = 15,
             RGB15 = 15,
+            R5G6B5 = 16,
             RGB16 = 16,
             RGB24 = 24,
             RGB32 = 32
@@ -104,6 +106,21 @@ namespace DDS
         public int MipMapCount;
 
         public CompressionMode Format;
+        public string FormatName
+        {
+            get
+            {
+                switch (Format)
+                {
+                    case CompressionMode.A1R5G5B5:
+                        return "ARGB16";
+                    case CompressionMode.R5G6B5:
+                        return "RGB16";
+                    default:
+                        return Format.ToString();
+                }
+            }
+        }
 
         public DDSImage() { }
 
@@ -189,14 +206,16 @@ namespace DDS
 
                     switch (_dds.PixelFormat.dwRGBBitCount)
                     {
-                        case 8:
-                            _dds.Format = CompressionMode.RGBI8;
-                            break;
-                        case 15:
-                            _dds.Format = CompressionMode.RGB15;
-                            break;
                         case 16:
-                            _dds.Format = CompressionMode.RGB16;
+                            if (_dds.PixelFormat.dwABitMask == 0)
+                            {
+                                _dds.Format = CompressionMode.R5G6B5;
+                            }
+                            else
+                            {
+                                _dds.Format = CompressionMode.A1R5G5B5;
+                            }
+                            _supportedBpp = true;
                             break;
                         case 24:
                             _dds.Format = CompressionMode.RGB24;
@@ -210,7 +229,7 @@ namespace DDS
 
                     if (!_supportedBpp)
                     {
-                        throw new Exception("Only R8G8B8 and A8R8G8B8 pixel formats are supported for uncompressed textures.");
+                        throw new Exception("Only 16, 24, and 32-bit pixel formats are supported for uncompressed textures.");
                     }
                 }
 
@@ -270,8 +289,7 @@ namespace DDS
 
                         if ((_dds.PixelFormat.dwFlags & DDPF_RGB) != 0)
                         {
-                            _compressionMode = _dds.PixelFormat.dwRGBBitCount;
-                            _dds.Format = (_dds.PixelFormat.dwRGBBitCount == 24) ? CompressionMode.RGB24 : CompressionMode.RGB32;
+                            _compressionMode = (uint)_dds.Format;
                         }
                         else if ((_dds.PixelFormat.dwFlags & DDPF_FOURCC) == 0 &&
                                   _dds.PixelFormat.dwRGBBitCount == 16 &&
@@ -318,6 +336,8 @@ namespace DDS
 
                 switch (CompressionMode)
                 {
+                    case 15:
+                    case 16:
                     case 24:
                     case 32:
                         return Linear(Data, W, H, CompressionMode);
@@ -695,22 +715,87 @@ namespace DDS
                 }
             }
 
-            private static Bitmap Linear(byte[] data, int w, int h, uint bpp)
+            private static Bitmap Linear(byte[] Data, int W, int H, uint bpp)
             {
-                Bitmap _img = new Bitmap(w, h);
+                Bitmap _img = new Bitmap(W, H);
+
+                int _a, _r, _g, _b, _c, _pos;
 
                 BitmapData _bits = _img.LockBits(new Rectangle(0, 0, _img.Width, _img.Height), ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
                 IntPtr _bitPtr = _bits.Scan0;
-
-                Int32[] _bpp32 = new Int32[data.Length >> 2];
-                Buffer.BlockCopy(data, 0, _bpp32, 0, data.Length);
 
                 Int32 _stride = (((_bits.Stride < 0) ? -_bits.Stride : _bits.Stride) >> 2);
                 Int32[] _pixels = new Int32[_stride * _bits.Height];
 
                 switch (bpp)
                 {
-                    case 32:
+                    case 15: // CompressionMode.A1R5G5B5:
+                        _pos = 0;
+                        for (int _y = 0; _y < H; _y++)
+                        {
+                            int _xy = _y * (_bits.Stride >> 2);
+
+                            for (int _x = 0; _x < W; _x++)
+                            {
+                                _c = Data[_pos++];
+                                _c |= Data[_pos++] << 8;
+                                
+                                _a = (_c & 0x8000) == 0 ? 0 : 0xFF;
+                                _r = ((_c & 0x7C00) >> 10) * 255 / 31;
+                                _g = ((_c & 0x03E0) >> 5) * 255 / 31;
+                                _b = (_c & 0x001F) * 255 / 31;
+
+                                _pixels[_xy++] = _a << 24 | _r << 16 | _g << 8 | _b;
+                            }
+                        }
+                        break;
+                    case 16: // CompressionMode.R5G6B5:
+                        _pos = 0;
+                        _a = 0xFF << 24;
+
+                        for (int _y = 0; _y < H; _y++)
+                        {
+                            int _xy = _y * (_bits.Stride >> 2);
+
+                            for (int _x = 0; _x < W; _x++)
+                            {
+                                _c = Data[_pos++];
+                                _c |= Data[_pos++] << 8;
+
+                                _r = ((_c & 0xF800) >> 11) * 255 / 31;
+                                _g = ((_c & 0x07E0) >> 5) * 255 / 63;
+                                _b = (_c & 0x001F) * 255 / 31;
+
+                                _pixels[_xy++] = _a | _r << 16 | _g << 8 | _b;
+                            }
+                        }
+                        break;
+                    case 24: // R8G8B8
+                        _a = 0xFF << 24;
+
+                        using (BinaryReader _reader = new BinaryReader(new MemoryStream(Data)))
+                        {
+                            _reader.BaseStream.Seek(0, SeekOrigin.Begin);
+
+                            for (int _y = 0; _y < _img.Height; _y++)
+                            {
+                                int _xy = ((_bits.Stride < 0) ? (_img.Height - _y) : _y) * _stride;
+
+                                for (int _x = 0; _x < _img.Width; _x++)
+                                {
+                                    _b = _reader.ReadByte();
+                                    _g = _reader.ReadByte();
+                                    _r = _reader.ReadByte();
+
+                                    _pixels[_xy++] = _a | (_r << 16) | (_g << 8) | _b;
+                                }
+                            }
+                        }
+                        break;
+                    case 32: // A8R8G8B8
+                        Int32[] _bpp32 = new Int32[Data.Length >> 2];
+                        Buffer.BlockCopy(Data, 0, _bpp32, 0, Data.Length);
+
                         if ((_stride == _img.Width) && (_bits.Stride > 0))
                         {
                             // Cohesive block of pixel data. No need to go row by row.
@@ -723,27 +808,9 @@ namespace DDS
                             {
                                 // if Stride < 0, image is stored from the bottom up, so we have to invert our _y
                                 int _xy1 = ((_bits.Stride < 0) ? (_img.Height - _y) : _y) * _stride;
-                                int _xy2 = _y * w;
+                                int _xy2 = _y * W;
 
                                 Array.Copy(_bpp32, _xy2, _pixels, _xy1, _stride);
-                            }
-                        }
-                        break;
-                    case 24:
-                        int _a = unchecked((int)0xFF000000);
-                        
-                        using (BinaryReader _reader = new BinaryReader(new MemoryStream(data)))
-                        {
-                            _reader.BaseStream.Seek(0, SeekOrigin.Begin);
-
-                            for (int _y = 0; _y < _img.Height; _y++)
-                            {
-                                int _xy = ((_bits.Stride < 0) ? (_img.Height - _y) : _y) * _stride;
-
-                                for (int _x = 0; _x < _img.Width; _x++)
-                                {
-                                    _pixels[_xy++] = _a | (_reader.ReadByte() << 16) | (_reader.ReadByte() << 8) | _reader.ReadByte();
-                                }
                             }
                         }
                         break;
@@ -802,6 +869,10 @@ namespace DDS
 
             switch (Format)
             {
+                case CompressionMode.A1R5G5B5:
+                    break;
+                case CompressionMode.R5G6B5:
+                    break;
                 case CompressionMode.RGB24:
                     break;
                 case CompressionMode.RGB32:
@@ -828,9 +899,18 @@ namespace DDS
                     }
 
                     Bitmap _map = new Bitmap(_w, _h);
-                    Graphics _blitter = Graphics.FromImage(_map);
-                    _blitter.DrawImage(Picture, 0, 0, _w, _h);
-                    _blitter.Dispose();
+                    
+                    using (Graphics _blitter = Graphics.FromImage(_map))
+                    {
+                        _blitter.InterpolationMode = InterpolationMode.HighQualityBicubic;
+
+                        using (ImageAttributes _wrapMode = new System.Drawing.Imaging.ImageAttributes())
+                        {
+                            _wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+
+                            _blitter.DrawImage(Picture, new Rectangle(0, 0, _w, _h), 0, 0, Picture.Width, Picture.Height, GraphicsUnit.Pixel, _wrapMode);
+                        }
+                    }
 
                     _mipMaps.Add(_map);
                 }
@@ -847,11 +927,38 @@ namespace DDS
                     _format.dwSize = 32;
                     _format.dwFlags = DDPF_RGB | (DDPF_ALPHAPIXELS * _hasAlpha);
                     _format.dwFourCC = 0;
-                    _format.dwRGBBitCount = (Format == CompressionMode.RGB24) ? 24u : 32u;
-                    _format.dwRBitMask = 0x00ff0000;
-                    _format.dwGBitMask = 0x0000ff00;
-                    _format.dwBBitMask = 0x000000ff;
-                    _format.dwABitMask = 0xff000000 * _hasAlpha;
+                    switch (Format)
+                    {
+                        case CompressionMode.R5G6B5:
+                            _format.dwRGBBitCount = 16;
+                            _format.dwABitMask = 0x0000;
+                            _format.dwRBitMask = 0xF800;
+                            _format.dwGBitMask = 0x07E0; 
+                            _format.dwBBitMask = 0x001F;
+                            break;
+                        case CompressionMode.A1R5G5B5:
+                            _format.dwRGBBitCount = 16;
+                            _format.dwABitMask = 0x8000;
+                            _format.dwRBitMask = 0x7C00;
+                            _format.dwGBitMask = 0x03E0;
+                            _format.dwBBitMask = 0x001F;
+                            break;
+                        case CompressionMode.RGB24:
+                            _format.dwRGBBitCount = 24;
+                            _format.dwABitMask = 0x00000000;
+                            _format.dwRBitMask = 0x00ff0000;
+                            _format.dwGBitMask = 0x0000ff00;
+                            _format.dwBBitMask = 0x000000ff;
+                            break;
+                        case CompressionMode.RGB32:
+                        default:
+                            _format.dwRGBBitCount = 32;
+                            _format.dwABitMask = 0xff000000 * _hasAlpha;
+                            _format.dwRBitMask = 0x00ff0000;
+                            _format.dwGBitMask = 0x0000ff00;
+                            _format.dwBBitMask = 0x000000ff;
+                            break;
+                    }
 
                     _header.dwSize = 124;
                     _header.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT | DDSD_MIPMAPCOUNT | DDSD_PITCH;
@@ -903,40 +1010,245 @@ namespace DDS
                         System.Runtime.InteropServices.Marshal.Copy(_bitPtr, _pixels, 0, _stride * _bits.Height);
                         _surface.UnlockBits(_bits);
 
-                        if (Format == CompressionMode.RGB24)
+                        int _a, _r, _g, _b, _y, _x, _xy;
+
+                        switch (Format)
                         {
-                            for (int _y = 0; _y < _surface.Height; _y++)
-                            {
-                                int _xy = _y * (_bits.Stride >> 2);
-
-                                for (int _x = 0; _x < _surface.Width; _x++)
+                            case CompressionMode.A1R5G5B5:
+                                switch (_bits.PixelFormat)
                                 {
-                                    int _c = _pixels[_xy++];
+                                    case System.Drawing.Imaging.PixelFormat.Format24bppRgb: // R8G8B8 -> A1R5G5B5
+                                        _a = 0x8000;
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
 
-                                    _stream.Write((byte)(_c >> 16));
-                                    _stream.Write((byte)(_c >> 8));
-                                    _stream.Write((byte)(_c));
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _b = _pixels[_xy++] * 31 / 255;
+                                                _g = _pixels[_xy++] * 31 / 255;
+                                                _r = _pixels[_xy++] * 31 / 255;
+
+                                                _stream.Write((ushort)(_a | _r << 10 | _g << 5 | _b));
+                                            }
+                                        }
+                                        break;
+                                    case System.Drawing.Imaging.PixelFormat.Format32bppArgb: // A8R8G8B8 -> A1R5G5B5
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
+
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _b = _pixels[_xy++] * 31 / 255;
+                                                _g = _pixels[_xy++] * 31 / 255;
+                                                _r = _pixels[_xy++] * 31 / 255;
+                                                _a = (_pixels[_xy++] & 0x80) << 8;
+
+                                                _stream.Write((ushort)(_a | _r << 10 | _g << 5 | _b));
+                                            }
+                                        }
+                                        break;
+                                    case System.Drawing.Imaging.PixelFormat.Format32bppRgb: // X8R8G8B8 -> A1R5G5B5
+                                        _a = 0x8000;
+
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
+
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _b = _pixels[_xy++] * 31 / 255;
+                                                _g = _pixels[_xy++] * 31 / 255;
+                                                _r = _pixels[_xy++] * 31 / 255;
+                                                _xy++;
+
+                                                _stream.Write((ushort)(_a | _r << 10 | _g << 5 | _b));
+                                            }
+                                        }
+                                        break;
                                 }
-                            }
-                        }
-                        else
-                        {
-                            if ((_stride == (_surface.Width * 4)) && (_bits.Stride > 0))
-                            {
-                                // Cohesive block of pixel data, top to bottom. No need to go row by row.
-
-                                _stream.Write(_pixels);
-                            }
-                            else
-                            {
-                                for (int _y = 0; _y < _surface.Height; _y++)
+                                break;
+                            case CompressionMode.R5G6B5:
+                                switch (_bits.PixelFormat)
                                 {
-                                    // if Stride < 0, image is stored from the bottom up, so we have to invert our _y
-                                    int _xy1 = ((_bits.Stride < 0) ? (_surface.Height - _y) : _y) * _stride;
+                                    case System.Drawing.Imaging.PixelFormat.Format24bppRgb: // R8G8B8 -> R5G6B5
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
 
-                                    _stream.Write(_pixels, _xy1, _stride);
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _b = _pixels[_xy++] * 31 / 255;
+                                                _g = _pixels[_xy++] * 63 / 255;
+                                                _r = _pixels[_xy++] * 31 / 255;
+
+                                                _stream.Write((ushort)(_r << 11 | _g << 5 | _b));
+                                            }
+                                        }
+                                        break;
+                                    case System.Drawing.Imaging.PixelFormat.Format32bppArgb: // A8R8G8B8 -> R5G6B5
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
+
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+
+                                                _b = _pixels[_xy++];
+                                                _g = _pixels[_xy++];
+                                                _r = _pixels[_xy++];
+
+                                                if ((_pixels[_xy++] & 0x80) == 0)
+                                                {
+                                                    _stream.Write((ushort)0);
+                                                }
+                                                else
+                                                {
+                                                    _r = _r * 31 / 255;
+                                                    _g = _g * 63 / 255;
+                                                    _b = _b * 31 / 255;
+
+                                                    _stream.Write((ushort)(_r << 11 | _g << 5 | _b));
+                                                }
+                                            }
+                                        }
+                                        break;
+                                    case System.Drawing.Imaging.PixelFormat.Format32bppRgb: // X8R8G8B8 -> R5G6B5
+                                        _a = 0x8000;
+
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
+
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _b = _pixels[_xy++] * 31 / 255;
+                                                _g = _pixels[_xy++] * 63 / 255;
+                                                _r = _pixels[_xy++] * 31 / 255;
+                                                _xy++;
+
+                                                _stream.Write((ushort)(_a | _r << 11 | _g << 5 | _b));
+                                            }
+                                        }
+                                        break;
                                 }
-                            }
+                                break;
+                            case CompressionMode.RGB24:
+                                switch (_bits.PixelFormat)
+                                {
+                                    case System.Drawing.Imaging.PixelFormat.Format24bppRgb: // R8G8B8
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
+
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _stream.Write(_pixels[_xy++]);
+                                                _stream.Write(_pixels[_xy++]);
+                                                _stream.Write(_pixels[_xy++]);
+                                            }
+                                        }
+                                        break;
+                                    case System.Drawing.Imaging.PixelFormat.Format32bppArgb: // A8R8G8B8 -> R8G8B8
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
+
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _b = _pixels[_xy++];
+                                                _g = _pixels[_xy++];
+                                                _r = _pixels[_xy++];
+
+                                                if ((_pixels[_xy++] & 0x80) == 0)
+                                                {
+                                                    _stream.Write((byte)0);
+                                                    _stream.Write((short)0);
+                                                }
+                                                else
+                                                {
+                                                    _stream.Write((byte)_b);
+                                                    _stream.Write((byte)_g);
+                                                    _stream.Write((byte)_r);
+                                                }
+                                            }
+                                        }
+                                        break;
+                                    case System.Drawing.Imaging.PixelFormat.Format32bppRgb: // X8R8G8B8 -> R8G8B8
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
+
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _b = _pixels[_xy++];
+                                                _g = _pixels[_xy++];
+                                                _r = _pixels[_xy++];
+                                                _xy++;
+
+                                                _stream.Write((byte)_b);
+                                                _stream.Write((byte)_g);
+                                                _stream.Write((byte)_r);
+                                            }
+                                        }
+                                        break;
+                                }
+                                break;
+                            case CompressionMode.RGB32:
+                                switch (_bits.PixelFormat)
+                                {
+                                    case System.Drawing.Imaging.PixelFormat.Format24bppRgb: // R8G8B8 -> A8R8G8B8
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
+
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _stream.Write(_pixels[_xy++]);
+                                                _stream.Write(_pixels[_xy++]);
+                                                _stream.Write(_pixels[_xy++]);
+                                                _stream.Write((byte)0xFF);
+                                            }
+                                        }
+                                        break;
+                                    case System.Drawing.Imaging.PixelFormat.Format32bppArgb: // A8R8G8B8
+                                        if ((_stride == (_surface.Width * 4)) && (_bits.Stride > 0))
+                                        {
+                                            // Cohesive block of pixel data, top to bottom. No need to go row by row.
+
+                                            _stream.Write(_pixels);
+                                        }
+                                        else
+                                        {
+                                            for (_y = 0; _y < _surface.Height; _y++)
+                                            {
+                                                // if Stride < 0, image is stored from the bottom up, so we have to invert our _y
+                                                int _xy1 = ((_bits.Stride < 0) ? (_surface.Height - _y) : _y) * _stride;
+
+                                                _stream.Write(_pixels, _xy1, _stride);
+                                            }
+                                        }
+                                        break;
+                                    case System.Drawing.Imaging.PixelFormat.Format32bppRgb: // X8R8G8B8 -> A8R8G8B8
+                                        _a = 0xFF << 24;
+
+                                        for (_y = 0; _y < _surface.Height; _y++)
+                                        {
+                                            _xy = _y * _bits.Stride;
+
+                                            for (_x = 0; _x < _surface.Width; _x++)
+                                            {
+                                                _stream.Write(_pixels[_xy++]);
+                                                _stream.Write(_pixels[_xy++]);
+                                                _stream.Write(_pixels[_xy++]);
+                                                _stream.Write((byte)0xFF);
+                                                _xy++;
+                                            }
+                                        }
+                                        break;
+                                }
+                                break;
                         }
                     }
                 }

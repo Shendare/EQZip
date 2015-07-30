@@ -50,14 +50,8 @@
     <Setting Name="ViewMode" Type="System.String" Scope="User">
       <Value Profile="(Default)">List</Value>
     </Setting>
-    <Setting Name="CompressImportedDDS" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">False</Value>
-    </Setting>
-    <Setting Name="MipMapsOnDDSExport" Type="System.String" Scope="User">
-      <Value Profile="(Default)">False</Value>
-    </Setting>
     <Setting Name="ImportFormat" Type="System.String" Scope="User">
-      <Value Profile="(Default)">.dds</Value>
+      <Value Profile="(Default)">16-bit</Value>
     </Setting>
     <Setting Name="ConfirmExportOverwrite" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>

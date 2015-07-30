@@ -119,6 +119,28 @@ namespace EQ_Zip
 
             return _data;
         }
+
+        public static int GetAlphaBits(System.Drawing.Image Image)
+        {
+            if (Image == null)
+            {
+                return 0;
+            }
+
+            switch (Image.PixelFormat)
+            {
+                case System.Drawing.Imaging.PixelFormat.Format16bppArgb1555:
+                    return 1;
+                case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
+                case System.Drawing.Imaging.PixelFormat.Format32bppPArgb:
+                    return 8;
+                case System.Drawing.Imaging.PixelFormat.Format64bppArgb:
+                case System.Drawing.Imaging.PixelFormat.Format64bppPArgb:
+                    return 16;
+            }
+
+            return 0;
+        }
     }
 
     public class zlib
@@ -209,6 +231,77 @@ namespace EQ_Zip
             }
 
             return (_adler32b << 16) | _adler32a;
+        }
+    }
+
+    public class Settings
+    {
+        public static string ImportFormat = "16-bit";
+        public static string ExportFormat = ".png";
+
+        public static int RememberMRUs = 9;
+        public static string[] MRUs = new string[9] { "", "", "", "", "", "", "", "", "" };
+
+        public static bool ConfirmExportOverwrite = true;
+        public static bool ConfirmImportOverwrite = false;
+        public static bool ConfirmRenameOverwrite = true;
+
+        public static string LastFolder_OpenArchive = "";
+        public static string LastFolder_SaveAsArchive = "";
+        public static string LastFolder_ImportFiles = "";
+        public static string LastFolder_ExportFiles = "";
+        public static string LastFolder_ReplaceFile = "";
+
+        public static string ViewMode = "List";
+
+        public static bool Changed = false;
+
+        public static void Load()
+        {
+            LastFolder_OpenArchive = Properties.Settings.Default.LastFolder_OpenArchive;
+            LastFolder_SaveAsArchive = Properties.Settings.Default.LastFolder_SaveAsArchive;
+            LastFolder_ImportFiles = Properties.Settings.Default.LastFolder_ImportFiles;
+            LastFolder_ExportFiles = Properties.Settings.Default.LastFolder_ExportFiles;
+            LastFolder_ReplaceFile = Properties.Settings.Default.LastFolder_ReplaceFile;
+            Settings.ImportFormat = Properties.Settings.Default.ImportFormat;
+            Settings.ExportFormat = Properties.Settings.Default.ExportFormat;
+            Settings.ViewMode = Properties.Settings.Default.ViewMode;
+            Settings.RememberMRUs = Properties.Settings.Default.RememberMRUs;
+            for (int _i = 1; _i <= Settings.RememberMRUs; _i++)
+            {
+                Settings.MRUs[_i - 1] = (string)Properties.Settings.Default["MRU" + _i.ToString()];
+            }
+
+            Settings.ConfirmExportOverwrite = (bool)Properties.Settings.Default["ConfirmExportOverwrite"];
+            Settings.ConfirmImportOverwrite = (bool)Properties.Settings.Default["ConfirmImportOverwrite"];
+            Settings.ConfirmRenameOverwrite = (bool)Properties.Settings.Default["ConfirmRenameOverwrite"];
+
+            Changed = false;
+        }
+
+        public static void Save()
+        {
+            Properties.Settings.Default.LastFolder_OpenArchive = LastFolder_OpenArchive;
+            Properties.Settings.Default.LastFolder_SaveAsArchive = LastFolder_SaveAsArchive;
+            Properties.Settings.Default.LastFolder_ImportFiles = LastFolder_ImportFiles;
+            Properties.Settings.Default.LastFolder_ExportFiles = LastFolder_ExportFiles;
+            Properties.Settings.Default.LastFolder_ReplaceFile = LastFolder_ReplaceFile;
+            Properties.Settings.Default.ImportFormat = ImportFormat;
+            Properties.Settings.Default.ExportFormat = ExportFormat;
+            Properties.Settings.Default.ViewMode = ViewMode;
+            Properties.Settings.Default.RememberMRUs = RememberMRUs;
+            for (int _i = 1; _i <= Settings.RememberMRUs; _i++)
+            {
+                Properties.Settings.Default["MRU" + _i.ToString()] = MRUs[_i - 1];
+            }
+
+            Properties.Settings.Default["ConfirmExportOverwrite"] = ConfirmExportOverwrite;
+            Properties.Settings.Default["ConfirmImportOverwrite"] = ConfirmImportOverwrite;
+            Properties.Settings.Default["ConfirmRenameOverwrite"] = ConfirmRenameOverwrite;
+
+            Properties.Settings.Default.Save();
+
+            Changed = false;
         }
     }
 }
