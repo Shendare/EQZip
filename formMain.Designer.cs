@@ -66,6 +66,8 @@
             this.invertSelectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripSeparator();
             this.preferencesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.flipHorizontallyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.flipVerticallyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.listViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.detailsViewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -88,6 +90,9 @@
             this.exportFileToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.exportAllToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
+            this.flipHorizontallyToolStripButton = new System.Windows.Forms.ToolStripButton();
+            this.flipVerticallyToolStripButton = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             this.cutToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.copyToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.pasteToolStripButton = new System.Windows.Forms.ToolStripButton();
@@ -100,7 +105,6 @@
             this.invertSelectionToolStripButton = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.preferencesToolStripButton = new System.Windows.Forms.ToolStripButton();
-            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             this.viewToolStripSplitButton = new System.Windows.Forms.ToolStripSplitButton();
             this.listViewToolStripButton = new System.Windows.Forms.ToolStripMenuItem();
             this.detailsViewToolStripButton = new System.Windows.Forms.ToolStripMenuItem();
@@ -136,6 +140,9 @@
             this.tilesViewContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.galleryViewContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem7 = new System.Windows.Forms.ToolStripSeparator();
+            this.flipHorizontalContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.flipVerticalContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.sepFlipContextMenuItem = new System.Windows.Forms.ToolStripSeparator();
             this.cutContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.copyContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pasteContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -146,13 +153,6 @@
             this.selectNoneContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.invertSelectionContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.dialogReplaceFile = new System.Windows.Forms.OpenFileDialog();
-            this.flipHorizontallyToolStripButton = new System.Windows.Forms.ToolStripButton();
-            this.flipVerticallyToolStripButton = new System.Windows.Forms.ToolStripButton();
-            this.flipHorizontallyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.flipVerticallyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.flipHorizontalContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.flipVerticalContextMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.sepFlipContextMenuItem = new System.Windows.Forms.ToolStripSeparator();
             this.menuStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.toolStrip1.SuspendLayout();
@@ -378,7 +378,7 @@
             // 
             this.cutToolStripMenuItem.Name = "cutToolStripMenuItem";
             this.cutToolStripMenuItem.ShortcutKeyDisplayString = "Ctrl+X";
-            this.cutToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.cutToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.cutToolStripMenuItem.Text = "Cu&t";
             this.cutToolStripMenuItem.Click += new System.EventHandler(this.cutToolStripMenuItem_Click);
             // 
@@ -386,7 +386,7 @@
             // 
             this.copyToolStripMenuItem.Name = "copyToolStripMenuItem";
             this.copyToolStripMenuItem.ShortcutKeyDisplayString = "Ctrl+Y";
-            this.copyToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.copyToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.copyToolStripMenuItem.Text = "&Copy";
             this.copyToolStripMenuItem.Click += new System.EventHandler(this.copyToolStripMenuItem_Click);
             // 
@@ -394,7 +394,7 @@
             // 
             this.pasteToolStripMenuItem.Name = "pasteToolStripMenuItem";
             this.pasteToolStripMenuItem.ShortcutKeyDisplayString = "Ctrl+V";
-            this.pasteToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.pasteToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.pasteToolStripMenuItem.Text = "&Paste";
             this.pasteToolStripMenuItem.Click += new System.EventHandler(this.pasteToolStripMenuItem_Click);
             // 
@@ -402,7 +402,7 @@
             // 
             this.deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
             this.deleteToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.Delete;
-            this.deleteToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.deleteToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.deleteToolStripMenuItem.Text = "&Delete";
             this.deleteToolStripMenuItem.Click += new System.EventHandler(this.deleteToolStripMenuItem_Click);
             // 
@@ -410,7 +410,7 @@
             // 
             this.renameToolStripMenuItem.Name = "renameToolStripMenuItem";
             this.renameToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F2;
-            this.renameToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.renameToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.renameToolStripMenuItem.Text = "Rena&me";
             this.renameToolStripMenuItem.Click += new System.EventHandler(this.renameToolStripMenuItem_Click);
             // 
@@ -418,49 +418,65 @@
             // 
             this.replaceToolStripMenuItem.Name = "replaceToolStripMenuItem";
             this.replaceToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.R)));
-            this.replaceToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.replaceToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.replaceToolStripMenuItem.Text = "&Replace...";
             this.replaceToolStripMenuItem.Click += new System.EventHandler(this.replaceToolStripMenuItem_Click);
             // 
             // toolStripMenuItem2
             // 
             this.toolStripMenuItem2.Name = "toolStripMenuItem2";
-            this.toolStripMenuItem2.Size = new System.Drawing.Size(194, 6);
+            this.toolStripMenuItem2.Size = new System.Drawing.Size(196, 6);
             // 
             // selectAllToolStripMenuItem
             // 
             this.selectAllToolStripMenuItem.Name = "selectAllToolStripMenuItem";
             this.selectAllToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
-            this.selectAllToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.selectAllToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.selectAllToolStripMenuItem.Text = "Select &All";
             this.selectAllToolStripMenuItem.Click += new System.EventHandler(this.selectAllToolStripMenuItem_Click);
             // 
             // selectNoneToolStripMenuItem
             // 
             this.selectNoneToolStripMenuItem.Name = "selectNoneToolStripMenuItem";
-            this.selectNoneToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.selectNoneToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.selectNoneToolStripMenuItem.Text = "Select &None";
             this.selectNoneToolStripMenuItem.Click += new System.EventHandler(this.selectNoneToolStripMenuItem_Click);
             // 
             // invertSelectionToolStripMenuItem
             // 
             this.invertSelectionToolStripMenuItem.Name = "invertSelectionToolStripMenuItem";
-            this.invertSelectionToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.invertSelectionToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.invertSelectionToolStripMenuItem.Text = "&Invert Selection";
             this.invertSelectionToolStripMenuItem.Click += new System.EventHandler(this.invertSelectionToolStripMenuItem_Click);
             // 
             // toolStripMenuItem3
             // 
             this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            this.toolStripMenuItem3.Size = new System.Drawing.Size(194, 6);
+            this.toolStripMenuItem3.Size = new System.Drawing.Size(196, 6);
             // 
             // preferencesToolStripMenuItem
             // 
             this.preferencesToolStripMenuItem.Name = "preferencesToolStripMenuItem";
             this.preferencesToolStripMenuItem.ShortcutKeyDisplayString = "F10";
-            this.preferencesToolStripMenuItem.Size = new System.Drawing.Size(197, 22);
+            this.preferencesToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
             this.preferencesToolStripMenuItem.Text = "Pre&ferences...";
             this.preferencesToolStripMenuItem.Click += new System.EventHandler(this.preferencesToolStripMenuItem_Click);
+            // 
+            // flipHorizontallyToolStripMenuItem
+            // 
+            this.flipHorizontallyToolStripMenuItem.Name = "flipHorizontallyToolStripMenuItem";
+            this.flipHorizontallyToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.H)));
+            this.flipHorizontallyToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
+            this.flipHorizontallyToolStripMenuItem.Text = "Flip &Horizontally";
+            this.flipHorizontallyToolStripMenuItem.Click += new System.EventHandler(this.flipHorizontallyToolStripMenuItem_Click);
+            // 
+            // flipVerticallyToolStripMenuItem
+            // 
+            this.flipVerticallyToolStripMenuItem.Name = "flipVerticallyToolStripMenuItem";
+            this.flipVerticallyToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.V)));
+            this.flipVerticallyToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
+            this.flipVerticallyToolStripMenuItem.Text = "Flip &Vertically";
+            this.flipVerticallyToolStripMenuItem.Click += new System.EventHandler(this.flipVerticallyToolStripMenuItem_Click);
             // 
             // viewToolStripMenuItem
             // 
@@ -693,6 +709,32 @@
             this.toolStripSeparator2.Name = "toolStripSeparator2";
             this.toolStripSeparator2.Size = new System.Drawing.Size(6, 39);
             // 
+            // flipHorizontallyToolStripButton
+            // 
+            this.flipHorizontallyToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.flipHorizontallyToolStripButton.Image = ((System.Drawing.Image)(resources.GetObject("flipHorizontallyToolStripButton.Image")));
+            this.flipHorizontallyToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.flipHorizontallyToolStripButton.Name = "flipHorizontallyToolStripButton";
+            this.flipHorizontallyToolStripButton.Size = new System.Drawing.Size(36, 36);
+            this.flipHorizontallyToolStripButton.Text = "Flip Horizontally (Alt+H)";
+            this.flipHorizontallyToolStripButton.Click += new System.EventHandler(this.flipHorizontallyToolStripMenuItem_Click);
+            // 
+            // flipVerticallyToolStripButton
+            // 
+            this.flipVerticallyToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.flipVerticallyToolStripButton.Image = ((System.Drawing.Image)(resources.GetObject("flipVerticallyToolStripButton.Image")));
+            this.flipVerticallyToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.flipVerticallyToolStripButton.Name = "flipVerticallyToolStripButton";
+            this.flipVerticallyToolStripButton.Size = new System.Drawing.Size(36, 36);
+            this.flipVerticallyToolStripButton.Text = "Flip Vertically (Alt+V)";
+            this.flipVerticallyToolStripButton.ToolTipText = "Flip Vertically (Alt+V)";
+            this.flipVerticallyToolStripButton.Click += new System.EventHandler(this.flipVerticallyToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator5
+            // 
+            this.toolStripSeparator5.Name = "toolStripSeparator5";
+            this.toolStripSeparator5.Size = new System.Drawing.Size(6, 39);
+            // 
             // cutToolStripButton
             // 
             this.cutToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
@@ -811,11 +853,6 @@
             this.preferencesToolStripButton.Size = new System.Drawing.Size(36, 36);
             this.preferencesToolStripButton.Text = "Preferences... (F10)";
             this.preferencesToolStripButton.Click += new System.EventHandler(this.preferencesToolStripMenuItem_Click);
-            // 
-            // toolStripSeparator5
-            // 
-            this.toolStripSeparator5.Name = "toolStripSeparator5";
-            this.toolStripSeparator5.Size = new System.Drawing.Size(6, 39);
             // 
             // viewToolStripSplitButton
             // 
@@ -1114,6 +1151,25 @@
             this.toolStripMenuItem7.Name = "toolStripMenuItem7";
             this.toolStripMenuItem7.Size = new System.Drawing.Size(144, 6);
             // 
+            // flipHorizontalContextMenuItem
+            // 
+            this.flipHorizontalContextMenuItem.Name = "flipHorizontalContextMenuItem";
+            this.flipHorizontalContextMenuItem.Size = new System.Drawing.Size(147, 24);
+            this.flipHorizontalContextMenuItem.Text = "Flip &Horizontal";
+            this.flipHorizontalContextMenuItem.Click += new System.EventHandler(this.flipHorizontallyToolStripMenuItem_Click);
+            // 
+            // flipVerticalContextMenuItem
+            // 
+            this.flipVerticalContextMenuItem.Name = "flipVerticalContextMenuItem";
+            this.flipVerticalContextMenuItem.Size = new System.Drawing.Size(147, 24);
+            this.flipVerticalContextMenuItem.Text = "&Flip Vertical";
+            this.flipVerticalContextMenuItem.Click += new System.EventHandler(this.flipVerticallyToolStripMenuItem_Click);
+            // 
+            // sepFlipContextMenuItem
+            // 
+            this.sepFlipContextMenuItem.Name = "sepFlipContextMenuItem";
+            this.sepFlipContextMenuItem.Size = new System.Drawing.Size(144, 6);
+            // 
             // cutContextMenuItem
             // 
             this.cutContextMenuItem.Name = "cutContextMenuItem";
@@ -1181,62 +1237,6 @@
             this.dialogReplaceFile.Filter = "Common EQ Files|*.dds;*.bmp;*.wav;*.wld;*.lay;*.lit;*.mod;*.mds;*.prt;*.pts;*.ani" +
     ";*.png;*.jpeg;*.jpg;*.gif;*.tga|All Files (*.*)|*.*";
             this.dialogReplaceFile.Title = "Choose File Replacement...";
-            // 
-            // flipHorizontallyToolStripButton
-            // 
-            this.flipHorizontallyToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.flipHorizontallyToolStripButton.Image = ((System.Drawing.Image)(resources.GetObject("flipHorizontallyToolStripButton.Image")));
-            this.flipHorizontallyToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.flipHorizontallyToolStripButton.Name = "flipHorizontallyToolStripButton";
-            this.flipHorizontallyToolStripButton.Size = new System.Drawing.Size(36, 36);
-            this.flipHorizontallyToolStripButton.Text = "Flip Horizontally (Alt+H)";
-            this.flipHorizontallyToolStripButton.Click += new System.EventHandler(this.flipHorizontallyToolStripMenuItem_Click);
-            // 
-            // flipVerticallyToolStripButton
-            // 
-            this.flipVerticallyToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.flipVerticallyToolStripButton.Image = ((System.Drawing.Image)(resources.GetObject("flipVerticallyToolStripButton.Image")));
-            this.flipVerticallyToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.flipVerticallyToolStripButton.Name = "flipVerticallyToolStripButton";
-            this.flipVerticallyToolStripButton.Size = new System.Drawing.Size(36, 36);
-            this.flipVerticallyToolStripButton.Text = "Flip Vertically (Alt+V)";
-            this.flipVerticallyToolStripButton.ToolTipText = "Flip Vertically (Alt+V)";
-            this.flipVerticallyToolStripButton.Click += new System.EventHandler(this.flipVerticallyToolStripMenuItem_Click);
-            // 
-            // flipHorizontallyToolStripMenuItem
-            // 
-            this.flipHorizontallyToolStripMenuItem.Name = "flipHorizontallyToolStripMenuItem";
-            this.flipHorizontallyToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.H)));
-            this.flipHorizontallyToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
-            this.flipHorizontallyToolStripMenuItem.Text = "Flip &Horizontally";
-            this.flipHorizontallyToolStripMenuItem.Click += new System.EventHandler(this.flipHorizontallyToolStripMenuItem_Click);
-            // 
-            // flipVerticallyToolStripMenuItem
-            // 
-            this.flipVerticallyToolStripMenuItem.Name = "flipVerticallyToolStripMenuItem";
-            this.flipVerticallyToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.V)));
-            this.flipVerticallyToolStripMenuItem.Size = new System.Drawing.Size(199, 22);
-            this.flipVerticallyToolStripMenuItem.Text = "Flip &Vertically";
-            this.flipVerticallyToolStripMenuItem.Click += new System.EventHandler(this.flipVerticallyToolStripMenuItem_Click);
-            // 
-            // flipHorizontalContextMenuItem
-            // 
-            this.flipHorizontalContextMenuItem.Name = "flipHorizontalContextMenuItem";
-            this.flipHorizontalContextMenuItem.Size = new System.Drawing.Size(147, 24);
-            this.flipHorizontalContextMenuItem.Text = "Flip &Horizontal";
-            this.flipHorizontalContextMenuItem.Click += new System.EventHandler(this.flipHorizontallyToolStripMenuItem_Click);
-            // 
-            // flipVerticalContextMenuItem
-            // 
-            this.flipVerticalContextMenuItem.Name = "flipVerticalContextMenuItem";
-            this.flipVerticalContextMenuItem.Size = new System.Drawing.Size(147, 24);
-            this.flipVerticalContextMenuItem.Text = "&Flip Vertical";
-            this.flipVerticalContextMenuItem.Click += new System.EventHandler(this.flipVerticallyToolStripMenuItem_Click);
-            // 
-            // sepFlipContextMenuItem
-            // 
-            this.sepFlipContextMenuItem.Name = "sepFlipContextMenuItem";
-            this.sepFlipContextMenuItem.Size = new System.Drawing.Size(144, 6);
             // 
             // formMain
             // 
