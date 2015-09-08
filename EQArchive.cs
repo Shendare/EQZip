@@ -835,96 +835,95 @@ namespace EQ_Zip
             return this._UncompressedData;
         }
 
-        public Image GetImage()
-        {
-            if (this._IsImageChecked)
-            {
-                return this._Image;
-            }
+		public Image GetImage()
+		{
+			if (this._IsImageChecked)
+			{
+				return this._Image;
+			}
 
-            byte[] _bytes = this.GetContents();
+			byte[] _bytes = this.GetContents();
 
-            this.ImageSubformat = "";
-            this.ImageFormat = "";
-            this._AlphaBits = -1;
+			this.ImageSubformat = "";
+			this.ImageFormat = "";
+			this._AlphaBits = -1;
 
-            if (_bytes == null)
-            {
-                this._IsImageChecked = true;
+			if (_bytes == null)
+			{
+				this._IsImageChecked = true;
 
-                this.Status = Result.OutOfMemory;
+				this.Status = Result.OutOfMemory;
 
-                return null;
-            }
+				return null;
+			}
 
-            Bitmap _loading = null;
+			Bitmap _loading = null;
 
-            using (MemoryStream _stream = new MemoryStream(_bytes))
-            {
-                // Natively Supported Image File?
-                try
-                {
-                    _loading = new Bitmap(_stream);
+			MemoryStream _stream = new MemoryStream(_bytes); // MemoryStream should remain open for the lifetime of the Bitmap.
 
-                    this.ImageFormat = System.IO.Path.GetExtension(this.Filename).ToLower();
-                }
-                catch
-                {
-                    _loading = null;
+			// Natively Supported Image File?
+			try
+			{
+				_loading = new Bitmap(_stream);
 
-                    _stream.Seek(0, SeekOrigin.Begin);
-                }
+				this.ImageFormat = System.IO.Path.GetExtension(this.Filename).ToLower();
+			}
+			catch
+			{
+				_loading = null;
 
-                if (_loading == null)
-                {
-                    // TGA image?
+				_stream.Seek(0, SeekOrigin.Begin);
+			}
 
-                    try
-                    {
-                        TargaImage _tga = new TargaImage(_stream);
+			if (_loading == null)
+			{
+				// TGA image?
 
-                        _loading = _tga.Image;
+				try
+				{
+					TargaImage _tga = new TargaImage(_stream);
 
-                        this.ImageFormat = ".tga";
-                    }
-                    catch
-                    {
-                        _loading = null;
-                    }
-                }
-            }
+					_loading = _tga.Image;
 
-            if (_loading == null)
-            {
-                // DDS Texture?
+					this.ImageFormat = ".tga";
+				}
+				catch
+				{
+					_loading = null;
+				}
+			}
 
-                try
-                {
-                    DDSImage _dds = DDSImage.Load(_bytes);
+			if (_loading == null)
+			{
+				// DDS Texture?
 
-                    _loading = _dds.Images[0];
+				try
+				{
+					DDSImage _dds = DDSImage.Load(_bytes);
 
-                    this.ImageFormat = ".dds";
-                    this.ImageSubformat = _dds.FormatName;
-                }
-                catch
-                {
-                    _loading = null;
-                }
-            }
+					_loading = _dds.Images[0];
 
-            if (_loading == null)
-            {
-                // Unsupported file.
-                this.Status = Result.WrongFileType;
-            }
+					this.ImageFormat = ".dds";
+					this.ImageSubformat = _dds.FormatName;
+				}
+				catch
+				{
+					_loading = null;
+				}
+			}
 
-            this._IsImageChecked = true;
+			if (_loading == null)
+			{
+				// Unsupported file.
+				this.Status = Result.WrongFileType;
+			}
 
-            this._Image = _loading;
+			this._IsImageChecked = true;
 
-            return this._Image;
-        }
+			this._Image = _loading;
+
+			return this._Image;
+		}
 
         public Image GetThumbnail()
         {
@@ -945,73 +944,72 @@ namespace EQ_Zip
             Format = Format.ToLower();
             this.ImageFormat = Format;
 
-            if (NewImage == null)
-            {
-                this.SetContents(null);
-            }
-            else
-            {
-                using (MemoryStream _newStream = new MemoryStream())
-                {
-                    switch (Format)
-                    {
-                        case "16-bit":
-                        case "rgb16":
-                        case "argb16":
-                        case "dxt1":
-                            if (GetAlphaBits() == 0)
-                            {
-                                DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.R5G6B5);
-                                this.ImageFormat = ".dds";
-                                this.ImageSubformat = "RGB16";
-                            }
-                            else
-                            {
-                                DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.A1R5G5B5);
-                                this.ImageFormat = ".dds";
-                                this.ImageSubformat = "ARGB16";
-                            }
-                            break;
-                        case "24-bit":
-                        case "rgb24":
-                            DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB24);
-                            this.ImageFormat = ".dds";
-                            this.ImageSubformat = "RGB24";
-                            break;
-                        case "32-bit":
-                        case "rgb32":
-                        case "dxt2":
-                        case "dxt3":
-                        case "dxt4":
-                        case "dxt5":
-                            DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB32);
-                            this.ImageFormat = ".dds";
-                            this.ImageSubformat = "RGB32";
-                            break;
-                        case ".bmp":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Bmp);
-                            break;
-                        case ".png":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Png);
-                            break;
-                        case ".gif":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Gif);
-                            break;
-                        case ".tif":
-                        case ".tiff":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Tiff);
-                            break;
-                        case ".jpg":
-                        case ".jpeg":
-                            this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Jpeg);
-                            break;
-                        default:
-                            throw new Exception("Unsupported conversion format");
-                    }
+			if (NewImage == null)
+			{
+				this.SetContents(null);
+			}
+			else
+			{
+				MemoryStream _newStream = new MemoryStream(); // MemoryStream should remain open for the lifetime of the Bitmap
 
-                    this.SetContents(_newStream.ToArray());
-                }
-            }
+				switch (Format)
+				{
+					case "16-bit":
+					case "rgb16":
+					case "argb16":
+					case "dxt1":
+						if (GetAlphaBits() == 0)
+						{
+							DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.R5G6B5);
+							this.ImageFormat = ".dds";
+							this.ImageSubformat = "RGB16";
+						}
+						else
+						{
+							DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.A1R5G5B5);
+							this.ImageFormat = ".dds";
+							this.ImageSubformat = "ARGB16";
+						}
+						break;
+					case "24-bit":
+					case "rgb24":
+						DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB24);
+						this.ImageFormat = ".dds";
+						this.ImageSubformat = "RGB24";
+						break;
+					case "32-bit":
+					case "rgb32":
+					case "dxt2":
+					case "dxt3":
+					case "dxt4":
+					case "dxt5":
+						DDSImage.Save((Bitmap)this.GetImage(), _newStream, DDSImage.CompressionMode.RGB32);
+						this.ImageFormat = ".dds";
+						this.ImageSubformat = "RGB32";
+						break;
+					case ".bmp":
+						this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Bmp);
+						break;
+					case ".png":
+						this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Png);
+						break;
+					case ".gif":
+						this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Gif);
+						break;
+					case ".tif":
+					case ".tiff":
+						this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Tiff);
+						break;
+					case ".jpg":
+					case ".jpeg":
+						this.GetImage().Save(_newStream, System.Drawing.Imaging.ImageFormat.Jpeg);
+						break;
+					default:
+						throw new Exception("Unsupported conversion format");
+				}
+
+				this.SetContents(_newStream.ToArray());
+			}
         }
 
         public Result SetContents(byte[] Data)

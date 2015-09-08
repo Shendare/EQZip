@@ -1,9 +1,9 @@
 EQ-Zip EverQuest Archive Manager
 -----------
 
-Current Version: 1.3
+Current Version: 1.4
 
-Last Updated: 7/30/2015
+Last Updated: 9/8/2015
 
 Github Link: https://github.com/Shendare/EQZip
 
@@ -85,6 +85,18 @@ To Download: https://github.com/Shendare/EQZip/releases
 
 #Release Notes:
 
+9/8/2015 - Version 1.4
+
+* Fixed: Extracting from _chr.s3d archives with lots of files inside should no longer yield a "General GDI+ Error".
+
+* Known Issue: Some files may still have too many files inside for C# to easily parse. global_chr.s3d is one that is known,
+  with 1,617 files stored in it. A stack overflow occurs even when not extracting the images from the stored files for
+  display. I'll have to put together a way to split up the processing of obscenely large numbers of files into batches.
+
+-----------
+
+Former Release Notes:
+
 7/30/2015 - Version 1.3
 
 * Added feature to easily horizontally or vertically flip an image to get it to show up properly in-game if the geometry
@@ -117,8 +129,6 @@ Enjoy customizing your EverQuest experience with EQ-Zip!
 - Shendare (Jon D. Jackson)
 
 -----------
-
-Former Release Notes:
 
 7/29/2015 - Version 1.2
 
