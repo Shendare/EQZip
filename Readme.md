@@ -1,9 +1,9 @@
 EQ-Zip EverQuest Archive Manager
 -----------
 
-Current Version: 1.4
+Current Version: 1.5
 
-Last Updated: 9/8/2015
+Last Updated: 9/11/2015
 
 Github Link: https://github.com/Shendare/EQZip
 
@@ -85,6 +85,26 @@ To Download: https://github.com/Shendare/EQZip/releases
 
 #Release Notes:
 
+9/11/2015 - Version 1.5
+
+* Fixed: No more crashing from opening archives with large numbers of files. Let me know if you run into one that does!
+
+* Fixed: Hopefully the last of the "Generic GDI+ Error" situations has been eradicated.
+
+* Improved: Vastly improved the speed of opening archives with large numbers of files.
+
+* Improved: Vastly improved the speed of importing and exporting large numbers of files.  If more than three files are
+            exported at once, you will get a confirmation of how many files were exported, to let you know when it's done.
+			
+* Improved: Application responsiveness has been vastly improved when handling archives with large numbers of files. There
+			should no longer be any conflicts between archive decompressing, interface updating, and thumbnail loading.
+			Scroll through the list of files all you like while the thumbnails continue to load in the background.
+
+
+-----------
+
+Former Release Notes:
+
 9/8/2015 - Version 1.4
 
 * Fixed: Extracting from _chr.s3d archives with lots of files inside should no longer yield a "General GDI+ Error".
@@ -93,9 +113,6 @@ To Download: https://github.com/Shendare/EQZip/releases
   with 1,617 files stored in it. A stack overflow occurs even when not extracting the images from the stored files for
   display. I'll have to put together a way to split up the processing of obscenely large numbers of files into batches.
 
------------
-
-Former Release Notes:
 
 7/30/2015 - Version 1.3
 

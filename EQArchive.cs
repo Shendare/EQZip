@@ -842,11 +842,19 @@ namespace EQ_Zip
 				return this._Image;
 			}
 
-			byte[] _bytes = this.GetContents();
-
 			this.ImageSubformat = "";
 			this.ImageFormat = "";
 			this._AlphaBits = -1;
+
+			if (!Util.IsImage(this.Filename))
+			{
+				this._IsImageChecked = true;
+				this._Image = null;
+				
+				return null;
+			}
+
+			byte[] _bytes = this.GetContents();
 
 			if (_bytes == null)
 			{
@@ -910,12 +918,6 @@ namespace EQ_Zip
 				{
 					_loading = null;
 				}
-			}
-
-			if (_loading == null)
-			{
-				// Unsupported file.
-				this.Status = Result.WrongFileType;
 			}
 
 			this._IsImageChecked = true;

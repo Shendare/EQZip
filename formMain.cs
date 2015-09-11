@@ -68,16 +68,20 @@ namespace EQ_Zip
 
         public List<int> ThumbnailQueue = new List<int>();
         public Mutex ThumbnailMutex = new Mutex(false);
+		public bool ThumbnailsLoaded = true;
 
         public List<int> DecompressQueue = new List<int>();
         public Mutex DecompressMutex = new Mutex(false);
 
+		public Queue<int> ListViewQueue = new Queue<int>();
         public Mutex ListViewMutex = new Mutex(false);
 
         public ListViewItem[] ItemsCutToClipboard;
 
         public EQArchive CurrentArchive;
         public bool ArchiveChanged = false;
+		public bool ArchiveLoading = false;
+		public EQArchiveFile NewFile = null;
 
         public System.Diagnostics.Stopwatch[] ThumbnailPerf = new System.Diagnostics.Stopwatch[3];
 
@@ -352,9 +356,6 @@ namespace EQ_Zip
                             _new = new EQArchiveFile(_newFilename);
                         }
 
-                        _new.GetImage();
-                        _new.SetThumbnail(GetSquareImage(_new.GetImage()));
-
                         if (_new.GetImage() == null)
                         {
                             if (Util.IsImage(_new.Filename))
@@ -370,6 +371,10 @@ namespace EQ_Zip
                                 _new.SetThumbnail(itemThumbsLarge.Images[0]);
                             }
                         }
+						else
+						{
+							_new.SetThumbnail(GetSquareImage(_new.GetImage()));
+						}
 
                         _confirm = new formReplaceDialog();
                         _confirm.OldFile = _old;
@@ -769,17 +774,20 @@ namespace EQ_Zip
 
             for (int _fileNum = 0; _fileNum < _fileCount; _fileNum++)
             {
-                _files[_fileNum].GetContents();
+				if (Util.IsImage(_files[_fileNum].Filename))
+				{
+					_files[_fileNum].GetContents();
 
-                if (threadDecompress.CancellationPending)
-                {
-                    ThumbnailPerf[2].Stop();
-                    return;
-                }
+					if (threadDecompress.CancellationPending)
+					{
+						ThumbnailPerf[2].Stop();
+						return;
+					}
 
-                DecompressMutex.WaitOne();
-                DecompressQueue.Add(_fileNum);
-                DecompressMutex.ReleaseMutex();
+					DecompressMutex.WaitOne();
+					DecompressQueue.Add(_fileNum);
+					DecompressMutex.ReleaseMutex();
+				}
             }
 
             ThumbnailPerf[2].Stop();
@@ -800,10 +808,13 @@ namespace EQ_Zip
             EQArchiveFile[] _files = new EQArchiveFile[_last + 1];
             CurrentArchive.Files.Values.CopyTo(_files, 0);
 
-            ThumbnailQueue.Clear();
+			ListViewQueue.Clear();
+			ThumbnailQueue.Clear();
             DecompressQueue.Clear();
 
-            threadThumbnails.RunWorkerAsync();
+			ThumbnailsLoaded = false;
+
+			threadThumbnails.RunWorkerAsync();
 
             int _thumbIndex = 0;
 
@@ -821,9 +832,7 @@ namespace EQ_Zip
 
                     Image _image = _file.GetImage();
 
-                    ListViewMutex.WaitOne();
-                    threadListView.ReportProgress(_thumbIndex);
-                    ListViewMutex.ReleaseMutex();
+					ListViewQueue.Enqueue(_thumbIndex);
 
                     try
                     {
@@ -833,7 +842,7 @@ namespace EQ_Zip
                     }
                     catch { }
                 }
-            } while (!threadListView.CancellationPending && (_thumbIndex < _last));
+            } while (!threadListView.CancellationPending && ((ThumbnailQueue.Count > 0) || threadThumbnails.IsBusy));
 
             if (threadListView.CancellationPending)
             {
@@ -845,50 +854,11 @@ namespace EQ_Zip
                 }
             }
 
-            ThumbnailPerf[0].Stop();
-        }
+			_files = null;
 
-        private void threadListView_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            ListViewMutex.WaitOne();
+			ThumbnailsLoaded = true;
 
-            Application.DoEvents();
-
-            ListViewItem _item = listView1.Items[e.ProgressPercentage];
-            EQArchiveFile _file = (EQArchiveFile)_item.Tag;
-
-            Image _image = _file.GetImage();
-
-            if (_image != null)
-            {
-                itemThumbsLarge.Images.Add(_file.GetThumbnail());
-                itemThumbsSmall.Images.Add(_file.GetThumbnail());
-
-                _item.ImageIndex = (itemThumbsLarge.Images.Count - 1);
-                _item.SubItems[1].Text = GetFileType(_file.ImageFormat) + ((_file.ImageSubformat == null) ? "" : " " + _file.ImageSubformat);
-                _item.SubItems[2].Text = _file.GetImage().Width.ToString() + "x" + _file.GetImage().Height.ToString();
-
-                if (_item.Selected && (listView1.SelectedItems.Count == 1))
-                {
-                    Selection_Changed();
-                }
-            }
-
-            toolStripProgressBar1.Value = e.ProgressPercentage;
-
-            if (e.ProgressPercentage == (CurrentArchive.Files.Count - 1))
-            {
-                toolStripProgressBar1.Visible = false;
-                listView1.LabelEdit = true;
-
-                /*
-                MessageBox.Show("Decompression: " + ThumbnailPerf[2].ElapsedMilliseconds.ToString() + "ms\n" +
-                                "Unpacking Images: " + ThumbnailPerf[1].ElapsedMilliseconds.ToString() + "ms\n" +
-                                "Setting thumbnails into ListView: " + ThumbnailPerf[0].ElapsedMilliseconds.ToString() + "ms");
-                */
-            }
-
-            ListViewMutex.ReleaseMutex();
+			ThumbnailPerf[0].Stop();
         }
 
         private void threadThumbnails_DoWork(object sender, DoWorkEventArgs e)
@@ -955,7 +925,7 @@ namespace EQ_Zip
                 {
                     Thread.Sleep(1);
                 }
-            } while (!threadThumbnails.CancellationPending && (_decompressed < _last));
+			} while (!threadThumbnails.CancellationPending && ((DecompressQueue.Count > 0) || threadDecompress.IsBusy));
 
             if (threadThumbnails.CancellationPending)
             {
@@ -977,7 +947,58 @@ namespace EQ_Zip
             listView1.View = View.Tile;
         }
 
-        private void viewToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
+		private void timerThumbnail_Tick(object sender, EventArgs e)
+		{
+			if (ListViewQueue.Count > 0)
+			{
+				int _itemNum = ListViewQueue.Dequeue();
+
+				if (listView1.Items.Count <= _itemNum)
+				{
+					// Thumbnail loading canceled. Abort.
+					ListViewQueue.Clear();
+					return;
+				}
+
+				ListViewItem _item = listView1.Items[_itemNum];
+				EQArchiveFile _file = (EQArchiveFile)_item.Tag;
+
+				Image _image = _file.GetImage();
+
+				if (_image != null)
+				{
+					itemThumbsLarge.Images.Add(_file.GetThumbnail());
+					itemThumbsSmall.Images.Add(_file.GetThumbnail());
+
+					_item.ImageIndex = (itemThumbsLarge.Images.Count - 1);
+					_item.SubItems[1].Text = GetFileType(_file.ImageFormat) + ((_file.ImageSubformat == null) ? "" : " " + _file.ImageSubformat);
+					_item.SubItems[2].Text = _file.GetImage().Width.ToString() + "x" + _file.GetImage().Height.ToString();
+
+					if (_item.Selected && (listView1.SelectedItems.Count == 1))
+					{
+						Selection_Changed();
+					}
+				}
+				
+				toolStripProgressBar1.Value = _itemNum;
+			}
+			
+			if ((ListViewQueue.Count < 1) && ThumbnailsLoaded && toolStripProgressBar1.Visible)
+			{
+				// Finished.
+
+				toolStripProgressBar1.Visible = false;
+				listView1.LabelEdit = true;
+
+				/*
+				MessageBox.Show("Decompression: " + ThumbnailPerf[2].ElapsedMilliseconds.ToString() + "ms\n" +
+								"Unpacking Images: " + ThumbnailPerf[1].ElapsedMilliseconds.ToString() + "ms\n" +
+								"Setting thumbnails into ListView: " + ThumbnailPerf[0].ElapsedMilliseconds.ToString() + "ms");
+				*/
+			}
+		}
+
+		private void viewToolStripMenuItem_DropDownOpening(object sender, EventArgs e)
         {
             listViewToolStripMenuItem.Checked = (listView1.View == View.List);
             detailsViewToolStripMenuItem.Checked = (listView1.View == View.Details);
@@ -1024,7 +1045,9 @@ namespace EQ_Zip
         
         private void CancelThumbnailThread()
         {
-            if (threadListView.IsBusy)
+			ListViewQueue.Clear();
+
+			if (threadListView.IsBusy)
             {
                 threadListView.CancelAsync();
 
@@ -1141,7 +1164,10 @@ namespace EQ_Zip
                 }
             }
 
-            //MessageBox.Show(_numExported.ToString() + " File" + ((_numExported == 1) ? "" : "s") + " Exported");
+			if (_numExported > 3)
+			{
+				MessageBox.Show(_numExported.ToString() + " File" + ((_numExported == 1) ? "" : "s") + " Exported");
+			}
         }
 
         private string GetFileType(string Filename)
@@ -1172,18 +1198,20 @@ namespace EQ_Zip
                     // Horizontal orientation. Normalize to square for display.
 
                     _thumbnail = new Bitmap(_w, _w);
-                    Graphics _blitter = Graphics.FromImage(_thumbnail);
-                    _blitter.DrawImage(Image, 0, (_w - _h) >> 1);
-                    _blitter.Dispose();
+					using (Graphics _blitter = Graphics.FromImage(_thumbnail))
+					{
+						_blitter.DrawImage(Image, 0, (_w - _h) >> 1);
+					}
                 }
                 else if (_h > _w)
                 {
                     // Vertical orientation. Normalize to square for display.
 
                     _thumbnail = new Bitmap(_h, _h);
-                    Graphics _blitter = Graphics.FromImage(_thumbnail);
-                    _blitter.DrawImage(Image, (_h - _w) >> 1, 0);
-                    _blitter.Dispose();
+					using (Graphics _blitter = Graphics.FromImage(_thumbnail))
+					{
+						_blitter.DrawImage(Image, (_h - _w) >> 1, 0);
+					}
                 }
             }
 
@@ -1193,6 +1221,7 @@ namespace EQ_Zip
         private int ImportFiles(ShellFileGroup ShellFiles)
         {
             int _numImported = 0;
+			ArchiveLoading = true;
 
             if (ShellFiles != null)
             {
@@ -1213,18 +1242,21 @@ namespace EQ_Zip
                         _numImported++;
                     }
                 }
-
-                if (_numImported > 0)
-                {
-                    Status_Changed(true);
-                }
             }
 
-            return _numImported;
+			ArchiveLoading = false;
+
+			if (_numImported > 0)
+			{
+				Status_Changed(true);
+			}
+
+			return _numImported;
         }
         private int ImportFiles(string[] FileList)
         {
             int _numImported = 0;
+			ArchiveLoading = true;
 
             if (FileList != null)
             {
@@ -1249,12 +1281,14 @@ namespace EQ_Zip
                         _numImported++;
                     }
                 }
-
-                if (_numImported > 0)
-                {
-                    Status_Changed(true);
-                }
             }
+
+			ArchiveLoading = false;
+
+			if (_numImported > 0)
+			{
+				Status_Changed(true);
+			}
 
             return _numImported;
         }
@@ -1266,14 +1300,8 @@ namespace EQ_Zip
 
             return ImportFile(_newFile);
         }
-        private bool ImportFile(string Filename)
-        {
-            return ImportFile(new EQArchiveFile(Filename, Util.GetFileContents(Filename)));
-        }
-        private bool ImportFile(string Filename, byte[] Contents)
-        {
-            return ImportFile(new EQArchiveFile(Filename, Contents));
-        }
+        private bool ImportFile(string Filename) { return ImportFile(new EQArchiveFile(Filename, Util.GetFileContents(Filename))); }
+        private bool ImportFile(string Filename, byte[] Contents) { return ImportFile(new EQArchiveFile(Filename, Contents)); }
         private bool ImportFile(EQArchiveFile File) { return ImportFile(File, false); }
         private bool ImportFile(EQArchiveFile File, bool Override)
         {
@@ -1322,19 +1350,15 @@ namespace EQ_Zip
                 }
             }
 
-            if (Settings.ImportFormat != "")
+            if ((Settings.ImportFormat != "") && (File.GetImage() != null) && (File.ImageFormat != Settings.ImportFormat))
             {
-                // Do we need to convert this file?
-
-                if ((File.GetImage() != null) && (File.ImageFormat != Settings.ImportFormat))
-                {
-                    File = File.AsFormat(Settings.ImportFormat, (_existing == null));
-                }
+                File = File.AsFormat(Settings.ImportFormat, (_existing == null));
             }
 
             bool _ok = (CurrentArchive.Add(File) == Result.OK);
 
-            Status_Changed(true);
+			NewFile = File;
+			Status_Changed(true);
 
             return _ok;
         }
@@ -1608,61 +1632,78 @@ namespace EQ_Zip
         public void Status_Changed() { Status_Changed(false); }
         public void Status_Changed(bool ForceListReload)
         {
-            saveToolStripMenuItem.Enabled = ((CurrentArchive != null) && (CurrentArchive.IsDirty) && (!CurrentArchive.Filename.Equals("(Untitled)")));
-            saveToolStripButton.Enabled = saveToolStripMenuItem.Enabled;
-            saveAsToolStripMenuItem.Enabled = (CurrentArchive != null);
-            saveAsToolStripButton.Enabled = saveAsToolStripMenuItem.Enabled;
-            importFileToolStripMenuItem.Enabled = (CurrentArchive != null);
-            importFileToolStripButton.Enabled = importFileToolStripMenuItem.Enabled;
+			if (ArchiveLoading)
+			{
+				ListViewItem _item = new ListViewItem();
 
-            ViewMode_Changed();
+				_item.Tag = NewFile;
+				UpdateItem(_item, false);
 
-            if (ForceListReload || (LastArchive != CurrentArchive) || ArchiveChanged)
-            {
-                CancelThumbnailThread();
-                
-                listView1.Items.Clear();
+				listView1.Items.Add(_item);
 
-                while (itemThumbsLarge.Images.Count > 3)
-                {
-                    // Clear all but our default built-in icons
+				Application.DoEvents();
+			}
+			else
+			{
+				saveToolStripMenuItem.Enabled = ((CurrentArchive != null) && (CurrentArchive.IsDirty) && (!CurrentArchive.Filename.Equals("(Untitled)")));
+				saveToolStripButton.Enabled = saveToolStripMenuItem.Enabled;
+				saveAsToolStripMenuItem.Enabled = (CurrentArchive != null);
+				saveAsToolStripButton.Enabled = saveAsToolStripMenuItem.Enabled;
+				importFileToolStripMenuItem.Enabled = (CurrentArchive != null);
+				importFileToolStripButton.Enabled = importFileToolStripMenuItem.Enabled;
 
-                    itemThumbsLarge.Images.RemoveAt(3);
-                    itemThumbsSmall.Images.RemoveAt(3);
-                }
+				if (ForceListReload || (LastArchive != CurrentArchive) || ArchiveChanged)
+				{
+					ViewMode_Changed();
 
-                if (CurrentArchive != null)
-                {
-                    foreach (EQArchiveFile _file in CurrentArchive.Files.Values)
-                    {
-                        ListViewItem _item = new ListViewItem();
+					CancelThumbnailThread();
 
-                        _item.Tag = _file;
-                        UpdateItem(_item, false);
+					listView1.Items.Clear();
 
-                        listView1.Items.Add(_item);
-                    }
-                }
+					while (itemThumbsLarge.Images.Count > 3)
+					{
+						// Clear all but our default built-in icons
 
-                listView1.Enabled = (CurrentArchive != null);
+						itemThumbsLarge.Images.RemoveAt(3);
+						itemThumbsSmall.Images.RemoveAt(3);
+					}
 
-                UpdateMRUs();
+					if (CurrentArchive != null)
+					{
+						foreach (EQArchiveFile _file in CurrentArchive.Files.Values)
+						{
+							ListViewItem _item = new ListViewItem();
 
-                LastArchive = CurrentArchive;
-                ArchiveChanged = false;
-                listView1.LabelEdit = false;
+							_item.Tag = _file;
+							UpdateItem(_item, false);
 
-                if (CurrentArchive != null)
-                {
-                    toolStripProgressBar1.Value = 0;
-                    toolStripProgressBar1.Maximum = CurrentArchive.Files.Count;
-                    toolStripProgressBar1.Visible = true;
-                }
+							listView1.Items.Add(_item);
+						}
+					}
 
-                threadListView.RunWorkerAsync();
-            }
+					listView1.Enabled = (CurrentArchive != null);
 
-            ViewMode_Restore();
+					UpdateMRUs();
+
+					LastArchive = CurrentArchive;
+					ArchiveChanged = false;
+					listView1.LabelEdit = false;
+
+					if (CurrentArchive != null)
+					{
+						toolStripProgressBar1.Value = 0;
+						toolStripProgressBar1.Maximum = CurrentArchive.Files.Count;
+						ThumbnailsLoaded = false;
+						toolStripProgressBar1.Visible = true;
+					}
+
+					Application.DoEvents();
+
+					ViewMode_Restore();
+
+					threadListView.RunWorkerAsync();
+				}
+			}
 
             if (CurrentArchive == null)
             {
@@ -1677,7 +1718,10 @@ namespace EQ_Zip
                 toolStripStatusLabelArchiveSize.Text = "Size on Disk: " + CurrentArchive.SizeOnDisk.ToString("###,###,###,##0");
             }
 
-            Selection_Changed();
+			if (!ArchiveLoading)
+			{
+				Selection_Changed();
+			}
         }
 
         public void UpdateItem(ListViewItem Item, bool WaitForThumbnail)
