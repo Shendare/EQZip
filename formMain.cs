@@ -61,6 +61,7 @@ namespace EQ_Zip
         };
 
         public bool ControlKeyDown = false;
+		public bool InitialLoad = true;
         
         public string VersionNumber = "";
 
@@ -452,20 +453,6 @@ namespace EQ_Zip
             Status_Changed();
 
             UpdateMRUs();
-
-            string[] _args = Environment.GetCommandLineArgs();
-
-            if (_args.Length > 1)
-            {
-                string[] _noMe = new string[_args.Length - 1];
-                
-                for (int _a = 0; _a < _noMe.Length; _a++)
-                {
-                    _noMe[_a] = _args[_a + 1];
-                }
-
-                ImportFiles(_noMe);
-            }
         }
 
         private void importFileToolStripMenuItem_Click(object sender, EventArgs e)
@@ -949,7 +936,25 @@ namespace EQ_Zip
 
 		private void timerThumbnail_Tick(object sender, EventArgs e)
 		{
-			if (ListViewQueue.Count > 0)
+			if (InitialLoad)
+			{
+				InitialLoad = false;
+
+				string[] _args = Environment.GetCommandLineArgs();
+
+				if (_args.Length > 1)
+				{
+					string[] _noMe = new string[_args.Length - 1];
+
+					for (int _a = 0; _a < _noMe.Length; _a++)
+					{
+						_noMe[_a] = _args[_a + 1];
+					}
+
+					ImportFiles(_noMe);
+				}
+			}
+			else if (ListViewQueue.Count > 0)
 			{
 				int _itemNum = ListViewQueue.Dequeue();
 
@@ -1632,7 +1637,7 @@ namespace EQ_Zip
         public void Status_Changed() { Status_Changed(false); }
         public void Status_Changed(bool ForceListReload)
         {
-			if (ArchiveLoading)
+			if (ArchiveLoading && (NewFile != null))
 			{
 				ListViewItem _item = new ListViewItem();
 
@@ -1718,10 +1723,7 @@ namespace EQ_Zip
                 toolStripStatusLabelArchiveSize.Text = "Size on Disk: " + CurrentArchive.SizeOnDisk.ToString("###,###,###,##0");
             }
 
-			if (!ArchiveLoading)
-			{
-				Selection_Changed();
-			}
+			Selection_Changed();
         }
 
         public void UpdateItem(ListViewItem Item, bool WaitForThumbnail)

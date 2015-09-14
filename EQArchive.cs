@@ -230,7 +230,9 @@ namespace EQ_Zip
                         {
                             // Filename doesn't match with what we were given in Step 2
 
-                            throw new Exception();
+							// This happens in gequip.s3d. We are ignoring it.
+
+                            //throw new Exception();
                         }
 
                         _file.Filename = new string(_inputname, 0, _len - 1);

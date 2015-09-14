@@ -1,9 +1,9 @@
 EQ-Zip EverQuest Archive Manager
 -----------
 
-Current Version: 1.5
+Current Version: 1.5.1
 
-Last Updated: 9/11/2015
+Last Updated: 9/13/2015
 
 Github Link: https://github.com/Shendare/EQZip
 
@@ -85,6 +85,18 @@ To Download: https://github.com/Shendare/EQZip/releases
 
 #Release Notes:
 
+9/13/2015 - Version 1.5.1
+
+* Fixed: Opening files was resulting in an exception being thrown in a number of intermittent situations.
+
+* Fixed: Item selection changes weren't always being detected and responded to.
+
+* Improved: CRC errors in names of files inside archives will now be ignored. This allows gequip.s3d to be opened.
+
+-----------
+
+Former Release Notes:
+
 9/11/2015 - Version 1.5
 
 * Fixed: No more crashing from opening archives with large numbers of files. Let me know if you run into one that does!
@@ -100,10 +112,6 @@ To Download: https://github.com/Shendare/EQZip/releases
 			should no longer be any conflicts between archive decompressing, interface updating, and thumbnail loading.
 			Scroll through the list of files all you like while the thumbnails continue to load in the background.
 
-
------------
-
-Former Release Notes:
 
 9/8/2015 - Version 1.4
 
