@@ -1,9 +1,9 @@
 EQ-Zip EverQuest Archive Manager
 -----------
 
-Current Version: 1.5.1
+Current Version: 1.5.2
 
-Last Updated: 9/13/2015
+Last Updated: 9/19/2015
 
 Github Link: https://github.com/Shendare/EQZip
 
@@ -85,6 +85,16 @@ To Download: https://github.com/Shendare/EQZip/releases
 
 #Release Notes:
 
+9/19/2015 - Version 1.5.2
+
+* Fixed: Saving global_chr.s3d will no longer result in an error. Its 1,617 files were taking up more filename space
+         than I ever expected (28,998 bytes, where the largest other archive I'd seen was around 8,000).
+		 Now allocating 64kb of memory for the filenames directory section, instead of 16kb.
+
+-----------
+
+Former Release Notes:
+
 9/13/2015 - Version 1.5.1
 
 * Fixed: Opening files was resulting in an exception being thrown in a number of intermittent situations.
@@ -93,9 +103,6 @@ To Download: https://github.com/Shendare/EQZip/releases
 
 * Improved: CRC errors in names of files inside archives will now be ignored. This allows gequip.s3d to be opened.
 
------------
-
-Former Release Notes:
 
 9/11/2015 - Version 1.5
 

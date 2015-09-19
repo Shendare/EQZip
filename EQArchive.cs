@@ -417,7 +417,7 @@ namespace EQ_Zip
 
                     EQArchiveFile _directory = new EQArchiveFile();
 
-                    byte[] _directoryBytes = new byte[16 * 1024];
+                    byte[] _directoryBytes = new byte[64 * 1024]; // global_chr.s3d = ~29,000 bytes of filenames!
 
                     using (BinaryWriter _stream = new BinaryWriter(new MemoryStream(_directoryBytes)))
                     {
