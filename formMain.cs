@@ -1858,5 +1858,16 @@ namespace EQ_Zip
 
 
         #endregion
+
+        private void formMain_Shown(object sender, EventArgs e)
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            if (args.Length > 1)
+            {
+                LoadArchive(args[1]);
+            }
+            
+           // LoadArchive("D:\\tmp\\soldungb\\soldungb.eqg");
+        }
     }
 }
